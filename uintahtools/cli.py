@@ -7,7 +7,7 @@ from uintahtools import UPS
 @click.group()
 def cli():
     """Command line scripts that simplify working with Uintah ups input files."""
-    click.echo("Hello, world!")
+    pass
 
 @cli.command("generate", short_help="generate simulation suite")
 @click.argument("ups", type=click.File())

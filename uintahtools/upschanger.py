@@ -24,11 +24,9 @@ writing the resulting object tree to a specified output file.
 import io
 import os
 import re
-import sys
 import unicodedata
 
 from lxml import etree
-from shutil import copy2
 import yaml
 
 class UPS:
@@ -85,7 +83,11 @@ class UPS:
 
         """
         func = self.tree.findall if all else self.tree.find
-        return func(".//"+tagname)
+        res = func(".//"+tagname)
+        if res is None:
+            raise AttributeError("Tag", tagname, "not found.")
+        else:
+            return res
 
     def base_tags(self, tag):
         """Returns the base value of a given parameter (tag).
@@ -129,7 +131,8 @@ class UPS:
         return sub
 
     def generate_ups(self):
-    # Check if we're dealing with a combinatorical approach
+        """Generate the simulation suite based on all combinations from settings."""
+        # Check if we're dealing with a combinatorical approach
         if "combine" in self.settings:
             # If combine holds a value other than true, create a folder where all
             # related files are placed, including a copy of the original input file
@@ -146,28 +149,27 @@ class UPS:
             tags = {key: self.get_values(key) for key in self.settings if key != "combine"}
             # Getting the tags to vary
             defaults = {tag: self.base_tags(tag) for tag in tags}
-            # Combining it all into a list of dicts
-            combos = [{default: tag.text, other:value} for default, tag in defaults.items()
-                                                            for other in defaults
-                                                            if other != default
-                                                            for value in tags[other]]
+            # Expanding it all into a list of dicts
+            combos = [{key: value} for key in tags for value in tags[key]]
+            
             for combo in combos:
                 # Create a title from the combos by adding the abbreviated
                 # names of the altered parameters plus their values.
-                # long_name_parameter: 0.5 adds lnp05 to title.
+                # `long_name_parameter: 0.5` adds lnp05 to title.
                 title = "-".join(abbrev(key)+str(v).strip() for key, v in combo.items())
                 outputups = self.name +"-"+ slugify(title) + ".ups"
-                [update_given(defaults[tag], combo[update]) for tag in defaults
+                [self.update_given(defaults[tag], combo[update]) for tag in defaults
                                         for update in combo
                                         if tag == update]
                 self.tree.write(outputups, pretty_print=True, xml_declaration=True)
 
         else:
-            [update_tag(key, value) for key, value in settings.items()]
-            outputups = slugify(search_tag("title").text) + ".ups"
+            [self.update_tag(key, value) for key, value in self.settings.items()]
+            outputups = slugify(self.search_tag("title").text) + ".ups"
             self.tree.write(outputups, pretty_print=True, xml_declaration=True)
 
 def abbrev(string):
+    """Returns the first letter in each underscore-separated word."""
     return ''.join(word[0] for word in string.split('_'))
 
 def slugify(text):
