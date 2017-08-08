@@ -32,9 +32,9 @@ import yaml
 class UPS:
     """Class containing the parsed UPS XML tree and related methods."""
     
-    def __init__(self, ups, yaml):
+    def __init__(self, ups, settings):
         self.tree = self.parse_ups(ups)
-        self.settings = self.load_settings(yaml)
+        self.settings = self.load_settings(settings)
         self.name = self.create_name()
 
     def parse_ups(self, ups):
@@ -139,7 +139,7 @@ class UPS:
             try:
                 os.mkdir(self.settings["combine"])
             except FileExistsError:
-                print("Directory", self.settings["combine"],"already exists. Skipping.")
+                print("Directory", self.settings["combine"],"already exists. Skipping creation.")
             os.chdir(self.settings["combine"])
 
             self.tree.write(self.name+".ups", pretty_print=True, xml_declaration=True)

@@ -1,0 +1,3 @@
+{
+    "python.pythonPath": "${workspaceRoot}/utools/bin/python3"
+}

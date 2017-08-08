@@ -68,6 +68,7 @@
       <material>
         <density>1600</density>
         <water_density>1000</water_density>
+        <permeability>1e-3</permeability>
         <porosity>0.48</porosity>
         <constitutive_model type="camclay_imp">
           <nu> 0.2</nu>
