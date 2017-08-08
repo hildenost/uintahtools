@@ -1,0 +1,3 @@
+combine: damping
+
+artificial_damping_coefficient: [0.5, 1]
