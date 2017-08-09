@@ -1,3 +1,3 @@
 {
-    "python.pythonPath": "${workspaceRoot}/utools/bin/python3"
+    "python.pythonPath": "/home/hilde/.virtualenvs/utools/bin/python3"
 }

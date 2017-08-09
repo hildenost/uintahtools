@@ -1,0 +1,7 @@
+delt_min: 1e-8
+delt_max: 1e-5
+
+material_model: !material
+  type: UCNH
+  bulk_modulus: 3333333
+  shear_modulus: 5e6

@@ -27,14 +27,25 @@ import re
 import unicodedata
 
 from lxml import etree
-import yaml
+from ruamel.yaml import YAML, yaml_object
 
-class UPS:
+yaml = YAML()
+
+@yaml_object(yaml)
+class Material(object):
+    yaml_tag = u"!material"
+
+    def __init__(self, **kwargs):
+        pass
+
+
+
+class UPS(object):
     """Class containing the parsed UPS XML tree and related methods."""
     
     def __init__(self, ups, settings):
         self.tree = self.parse_ups(ups)
-        self.settings = self.load_settings(settings)
+        self.settings = yaml.load(settings)
         self.name = self.create_name()
 
     def parse_ups(self, ups):
@@ -59,35 +70,39 @@ class UPS:
                 # is replaced by the YAML provided one.
                 
                 # Loop through all time_point tags and delete
-                [tag.remove(tp) for tp in self.search_tag("time_point", all=True)]
+                [tag.remove(tp) for tp in self.search_tag("time_point", one=False)]
 
                 # Add the new load curve
                 for timepoint in value:
                     test = etree.SubElement(tag, "time_point")
-                    [add_subelement(test, key, str(value)) for key, value in timepoint.items()]
+                    [self.add_subelement(test, key, str(value)) for key, value in timepoint.items()]
             else:
                 tag.text = str(value)
         else:
             # Tag is not found
             if key == "material_model":
                 tag = self.search_tag("constitutive_model")
-                tag.attrib['type'] = value
-            else:
-                print("WARNING: The tag", key,"is not a valid ups tag. Skipped it.")
+                # Resetting tag
+                tag.clear()
 
-    def search_tag(self, tagname, all=False):
+                # Assigning new material model type
+                tag.attrib['type'] = value.type
+
+                # Assigning new child nodes with the material properties provided
+                [self.add_subelement(tag, key, str(value)) for key, value in value.__dict__.items() if key != "type"]
+            else:
+                print("WARNING: The tag", key,"was not specified in input ups file. Skipped it.")
+
+    def search_tag(self, tagname, one=True):
         """Return the result of endless search of tag in tree.
         
         By default, the first result is returned, but if all is set
         to True, all results are returned.
 
         """
-        func = self.tree.findall if all else self.tree.find
+        func = self.tree.find if one else self.tree.findall
         res = func(".//"+tagname)
-        if res is None:
-            raise AttributeError("Tag", tagname, "not found.")
-        else:
-            return res
+        return res
 
     def base_tags(self, tag):
         """Returns the base value of a given parameter (tag).
@@ -102,20 +117,7 @@ class UPS:
     def create_name(self):
         """Set the name of the simulation suite family based on the input file title."""
         return self.search_tag("title").text
-
-    def load_settings(self, settings_file):
-        """Return the loaded yaml settings file.
-        
-        If using the command line interface, this function is given
-        a file object. In that case yaml can be loaded directly.
-        
-        """
-        if isinstance(settings_file, io.TextIOWrapper):
-            return yaml.load(settings_file)
-        else:
-            with open(settings_file, "r") as stream:
-                return yaml.load(stream)
-    
+  
     def get_values(self, key):
         if key == "load_curve":
             return self.settings[key]["middle_time"]
