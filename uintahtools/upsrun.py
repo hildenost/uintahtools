@@ -6,6 +6,7 @@ simulation test suite.
 """
 import os
 import sys
+import subprocess
 
 import click
 
@@ -19,5 +20,6 @@ class Suite:
         return [os.path.join(folder, file) for file in os.listdir(folder) if file.endswith(".ups")]
 
     def run(self):
-        cmd = "~/trunk/dbg/StandAlone/sus damping/1D.ups"
-        os.system(cmd)
+        cmd = "/home/hilde/trunk/opt/StandAlone/sus damping/1D.ups"
+        cmd, arg = cmd.split()
+        subprocess.Popen(['xterm', '-e', cmd, arg])
