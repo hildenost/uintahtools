@@ -21,7 +21,6 @@ writing the resulting object tree to a specified output file.
 
 """
 
-import io
 import os
 import re
 import unicodedata
@@ -48,7 +47,6 @@ class Material:
 
     def __init__(self, **kwargs):
         pass
-
 
 
 class UPS:
@@ -171,6 +169,9 @@ class UPS:
                 # `long_name_parameter: 0.5` adds lnp05 to title.
                 title = "-".join(abbrev(key)+str(v).strip() for key, v in combo.items())
                 outputups = self.name +"-"+ slugify(title) + ".ups"
+                filebase = self.name + "-" + slugify(title) + ".uda"
+                self.update_tag("filebase", filebase)
+                self.update_tag("title", " ".join([self.name, title]))
                 [self.update_given(defaults[tag], combo[update]) for tag in defaults
                                         for update in combo
                                         if tag == update]

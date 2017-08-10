@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='ASCII'?>
 <Uintah_specification>
   <Meta>
-    <title>1D</title>
+    <title>1D adc0.5</title>
   </Meta>
   <SimulationComponent type="mpm"/>
   <Time>
@@ -13,7 +13,7 @@
     <timestep_multiplier>0.4</timestep_multiplier>
   </Time>
   <DataArchiver>
-    <filebase>oedo.uda</filebase>
+    <filebase>1D-adc05.uda</filebase>
     <outputInterval>5.0e-2</outputInterval>
     <save label="p.particleID"/>
     <save label="p.x"/>
@@ -66,10 +66,10 @@
            </geom_object>
          </material>-->
       <material>
-        <density>2000</density>
+        <density>1600</density>
         <water_density>1000</water_density>
         <permeability>1e-3</permeability>
-        <porosity>0.48</porosity>
+        <porosity>0.4</porosity>
         <constitutive_model type="camclay_imp">
           <nu> 0.2</nu>
           <e0> 0.9</e0>
