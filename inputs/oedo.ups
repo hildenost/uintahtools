@@ -143,8 +143,8 @@
               <upper>[1, 1.2, 0.02]</upper>
               <extraCells>[0,0,0]      </extraCells>
               <patches>[1,1,1]         </patches>
-           </Box>
            <resolution>[6, 48, 1]</resolution>
+           </Box>
        </Level>
 
     </Grid>

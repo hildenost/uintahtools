@@ -17,7 +17,7 @@
    </Time>
    <DataArchiver>
        <filebase>oedo.uda</filebase>
-       <outputInterval>5.0e-2</outputInterval>
+       <outputInterval>1.0e-4</outputInterval>
        <save label = "p.particleID"/>
        <save label = "p.x"/>
        <save label = "p.volume"/>
@@ -44,7 +44,7 @@
        <artificial_damping_coeff>0.0</artificial_damping_coeff>
       <use_load_curves>true</use_load_curves>
       <axisymmetric>false</axisymmetric>
-          <coupled_flow_analysis>        true       </coupled_flow_analysis>
+          <coupled_flow_analysis>true</coupled_flow_analysis>
     </MPM>
 
     <PhysicalConstants>
@@ -64,7 +64,7 @@
                    <kappa> 0.06</kappa>
                    <lambda> 0.3 </lambda>
                    <M> 1.2 </M>
-                   <p_ini> 1e3 </p_ini>
+                   <p_ini> 1 </p_ini>
                    <OCR>2</OCR>
                </constitutive_model> 
                <thermal_conductivity>1</thermal_conductivity> 
@@ -140,7 +140,7 @@
        <Level>
            <Box label="1">
               <lower>[0, 0, 0]   </lower>
-              <upper>[1, 1.2, 0.02]</upper>
+              <upper>[1, 1.2, 0.1]</upper>
               <extraCells>[0,0,0]      </extraCells>
               <patches>[1,1,1]         </patches>
            <resolution>[6, 48, 1]</resolution>

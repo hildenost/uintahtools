@@ -176,11 +176,11 @@ class UPS:
                                         for update in combo
                                         if tag == update]
                 self.tree.write(outputups, pretty_print=True, xml_declaration=True)
-
         else:
             [self.update_tag(key, value) for key, value in self.settings.items()]
             outputups = slugify(self.search_tag("title").text) + ".ups"
             self.tree.write(outputups, pretty_print=True, xml_declaration=True)
+        return os.getcwd()
 
 def abbrev(string):
     """Returns the first letter in each underscore-separated word."""

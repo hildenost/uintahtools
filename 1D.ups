@@ -23,6 +23,7 @@
     <save label="p.velocity"/>
     <save label="p.externalforce"/>
     <save label="p.deformationMeasure"/>
+    <save label="p.porepressure"/>
     <!--       <save label = "g.temperature"/> -->
     <!--       <save label = "g.temperaturenobc"/> -->
     <save label="g.mass"/>
@@ -44,27 +45,6 @@
   </PhysicalConstants>
   <MaterialProperties>
     <MPM>
-      <!--<material>
-           <density>2</density>
-           <constitutive_model type="UCNH">
-                   <bulk_modulus> 6.666667e6</bulk_modulus>
-                   <shear_modulus>2.222222e6</shear_modulus>
-           </constitutive_model>
-           <thermal_conductivity>1</thermal_conductivity>
-           <specific_heat>1</specific_heat>
-           <geom_object>
-                   <box label = "boxD">
-                     <min>[0, 4, 0]</min> 
-                     <max>[1, 5, 0.02]</max> 
-	                 <min>[0,0,0]</min>
-                     <max>[1,2,0.2]</max>
-                 </box>
-                  <res>[5,5,1]</res>
-                 <velocity>[0.0,0.0,0.0]</velocity>
-                 <temperature>12</temperature>
-
-           </geom_object>
-         </material>-->
       <material>
         <density>1600</density>
         <water_density>1000</water_density>
@@ -74,43 +54,18 @@
           <shear_modulus>5000000.0</shear_modulus>
           <bulk_modulus>3333333</bulk_modulus>
         </constitutive_model>
-        <!--          <constitutive_model type="UCNH">
-                <bulk_modulus> 3200 </bulk_modulus>
-                <shear_modulus> 2400 </shear_modulus>
-                <useModifiedEOS> true </useModifiedEOS>
-
-
-
-                <usePlasticity> true </usePlasticity>
-                <yield_stress> 300.0 </yield_stress>
-                <hardening_modulus> 20.0 </hardening_modulus>
-                <alpha> 1.0 </alpha>
-
-
-                <useDamage>true</useDamage>
-                <failure_criteria> MohrColoumb </failure_criteria>
-                <tensile_cutoff_fraction_of_cohesion> 0.01 </tensile_cutoff_fraction_of_cohesion>
-                <friction_angle> 35 </friction_angle>
-
-                <failure_mean> 1 </failure_mean>
-              </constitutive_model>-->
         <thermal_conductivity>1</thermal_conductivity>
         <specific_heat>1</specific_heat>
         <geom_object>
           <box label="soil">
             <min>[0,0,0]</min>
-            <max>[1,2,0.2]</max>
+            <max>[1,1,0.1]</max>
           </box>
-          <res>[2,2,1]</res>
+          <res>[1,1,1]</res>
           <velocity>[0.0,0.0,0.0]</velocity>
           <temperature>12</temperature>
         </geom_object>
       </material>
-      <!--
-            <contact> 
-             <type>single_velocity</type>
-            <materials>[0,1]</materials>
-           </contact>-->
     </MPM>
   </MaterialProperties>
   <PhysicalBC>
@@ -118,8 +73,8 @@
       <pressure>
         <geom_object>
           <box>
-            <min>           [0.0,1.99,0.0]   </min>
-            <max>           [1.0,2.01,0.02]   </max>
+            <min>           [0.0,0.9999,0.0]   </min>
+            <max>           [1.0,1.01,0.1]   </max>
           </box>
         </geom_object>
         <load_curve>
@@ -129,12 +84,12 @@
             <load> 0 </load>
           </time_point>
           <time_point>
-            <time> 1 </time>
-            <load> -3e3 </load>
+            <time> 0.001 </time>
+            <load> -1e5 </load>
           </time_point>
           <time_point>
             <time> 10 </time>
-            <load> -3e3 </load>
+            <load> -1e5 </load>
           </time_point>
         </load_curve>
       </pressure>
@@ -151,9 +106,8 @@
           </BCType>
       </Face>
       <Face side="y-">
-        <BCType id="all" var="Dirichlet" label="Velocity">
-          <value> [0.0,0.0,0.0] </value>
-        </BCType>
+        <BCType id="all" var="symmetry" label="Symmetric">
+          </BCType>
       </Face>
       <Face side="y+">
         <BCType id="all" var="symmetry" label="Symmetric">
@@ -171,12 +125,11 @@
     <Level>
       <Box label="1">
         <lower>[0, 0, 0]   </lower>
-        <upper>[1, 2.5, 0.02]</upper>
+        <upper>[1, 1.2, 0.02]</upper>
         <extraCells>[0,0,0]      </extraCells>
         <patches>[1,1,1]         </patches>
       </Box>
-      <spacing>[0.5,0.5,0.02]</spacing>
-      <!--  <periodic> [1,0,0] </periodic>-->
+      <resolution>[6, 48, 1]</resolution>
     </Level>
   </Grid>
 </Uintah_specification>
