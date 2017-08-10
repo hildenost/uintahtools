@@ -21,7 +21,6 @@ writing the resulting object tree to a specified output file.
 
 """
 
-import io
 import os
 import re
 import unicodedata
@@ -32,15 +31,25 @@ from ruamel.yaml import YAML, yaml_object
 yaml = YAML()
 
 @yaml_object(yaml)
-class Material(object):
+class Material:
+    """YAML class for the constitutive model.
+
+    Usage:
+    material_model: !material
+      type: name_of_model
+      materialparam1: some_value
+      materialparam2: another_value
+      ...
+      materialparamn: last_value
+    
+    """
     yaml_tag = u"!material"
 
     def __init__(self, **kwargs):
         pass
 
 
-
-class UPS(object):
+class UPS:
     """Class containing the parsed UPS XML tree and related methods."""
     
     def __init__(self, ups, settings):
@@ -89,7 +98,7 @@ class UPS(object):
                 tag.attrib['type'] = value.type
 
                 # Assigning new child nodes with the material properties provided
-                [self.add_subelement(tag, key, str(value)) for key, value in value.__dict__.items() if key != "type"]
+                [self.add_subelement(tag, key, str(value)) for key, value in vars(value).items() if key != "type"]
             else:
                 print("WARNING: The tag", key,"was not specified in input ups file. Skipped it.")
 
@@ -160,6 +169,9 @@ class UPS(object):
                 # `long_name_parameter: 0.5` adds lnp05 to title.
                 title = "-".join(abbrev(key)+str(v).strip() for key, v in combo.items())
                 outputups = self.name +"-"+ slugify(title) + ".ups"
+                filebase = self.name + "-" + slugify(title) + ".uda"
+                self.update_tag("filebase", filebase)
+                self.update_tag("title", " ".join([self.name, title]))
                 [self.update_given(defaults[tag], combo[update]) for tag in defaults
                                         for update in combo
                                         if tag == update]

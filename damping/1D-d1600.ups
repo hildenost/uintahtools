@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='ASCII'?>
 <Uintah_specification>
   <Meta>
-    <title>1D</title>
+    <title>1D d1600</title>
   </Meta>
   <SimulationComponent type="mpm"/>
   <Time>
@@ -13,7 +13,7 @@
     <timestep_multiplier>0.4</timestep_multiplier>
   </Time>
   <DataArchiver>
-    <filebase>oedo.uda</filebase>
+    <filebase>1D-d1600.uda</filebase>
     <outputInterval>5.0e-2</outputInterval>
     <save label="p.particleID"/>
     <save label="p.x"/>
@@ -34,7 +34,7 @@
   <MPM>
     <time_integrator>explicit</time_integrator>
     <interpolator>linear</interpolator>
-    <artificial_damping_coeff>0.0</artificial_damping_coeff>
+    <artificial_damping_coeff>1</artificial_damping_coeff>
     <use_load_curves>true</use_load_curves>
     <axisymmetric>false</axisymmetric>
     <coupled_flow_analysis>        true       </coupled_flow_analysis>
@@ -69,7 +69,7 @@
         <density>1600</density>
         <water_density>1000</water_density>
         <permeability>1e-3</permeability>
-        <porosity>0.48</porosity>
+        <porosity>0.4</porosity>
         <constitutive_model type="camclay_imp">
           <nu> 0.2</nu>
           <e0> 0.9</e0>

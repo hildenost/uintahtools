@@ -66,10 +66,10 @@
            </geom_object>
          </material>-->
       <material>
-        <density>2.7</density>
+        <density>1600</density>
         <water_density>1000</water_density>
         <permeability>1e-3</permeability>
-        <porosity>0.48</porosity>
+        <porosity>0.4</porosity>
         <constitutive_model type="camclay_imp">
           <nu> 0.2</nu>
           <e0> 0.9</e0>
