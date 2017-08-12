@@ -9,9 +9,6 @@ import re
 import sys
 import subprocess
 
-from uintahtools.config import UINTAHPATH
-
-
 class Suite:
     """Class to keep track of the entire simulation suite."""
 

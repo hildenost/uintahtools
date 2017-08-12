@@ -51,8 +51,8 @@
         <permeability>1e-3</permeability>
         <porosity>0.4</porosity>
         <constitutive_model type="UCNH">
-          <shear_modulus>5000000.0</shear_modulus>
           <bulk_modulus>3333333</bulk_modulus>
+          <shear_modulus>5000000.0</shear_modulus>
         </constitutive_model>
         <thermal_conductivity>1</thermal_conductivity>
         <specific_heat>1</specific_heat>
@@ -128,8 +128,8 @@
         <upper>[1, 1.2, 0.02]</upper>
         <extraCells>[0,0,0]      </extraCells>
         <patches>[1,1,1]         </patches>
+        <resolution>[6, 48, 1]</resolution>
       </Box>
-      <resolution>[6, 48, 1]</resolution>
     </Level>
   </Grid>
 </Uintah_specification>

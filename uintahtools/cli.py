@@ -1,14 +1,62 @@
 """Command line interface for UintahTools."""
 
 import click
+import readline
 import os
 
+from pathlib import Path
+
+from ruamel.yaml import YAML
 from uintahtools import UPS, Suite
+
+CONFIG = "config.yaml"
+CONFIGSTR = """\
+# Configuration file for package uintahtools
+
+uintahpath: false
+"""
+
+readline.set_completer_delims(" \t\n")
+readline.parse_and_bind("tab: complete")
+
+def initialize_config():
+    """Initializes the configuration file if it is not set.
+
+    Also prompts for the uintah executable if this is not set.
+    """
+    
+    # Check settings. We need a path to the Uintah executable
+    yaml = YAML()
+    p = Path(CONFIG)
+    if not p.exists():
+        p.touch()
+        yaml.dump(yaml.load(CONFIGSTR), p)
+
+    settings = yaml.load(p)
+    if not settings["uintahpath"]:
+        while True:
+            suggestion = os.path.expanduser(
+                input("UINTAHPATH is not set. Where is the Uintah executable?\t")
+            )
+        
+            # Verify that the input path is valid and existing before setting
+            # Also expand the path so it is absolute before storing
+            try:
+                Path(suggestion).resolve()
+                Path(suggestion).exists()
+            except FileNotFoundError:
+                print("Please enter a valid path.")
+            else:
+                settings["uintahpath"] = suggestion
+                break
+        
+        yaml.dump(settings, p)
 
 @click.group()
 def cli():
     """Command line scripts that simplify working with Uintah ups input files."""
-    pass
+    initialize_config()
+
 
 @cli.command("generate", short_help="generate simulation suite")
 @click.argument("ups", type=click.File())
