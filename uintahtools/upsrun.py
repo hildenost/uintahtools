@@ -8,12 +8,22 @@ import os
 import re
 import sys
 import subprocess
+from pathlib import Path
+
+from ruamel.yaml import YAML
+from uintahtools import CONFIG
 
 class Suite:
     """Class to keep track of the entire simulation suite."""
 
     def __init__(self, folder):
         self.files = self.find_files(folder)
+        self.UINTAHPATH = self.get_uintahpath()
+    
+    def get_uintahpath(self):
+        yaml = YAML()
+        settings = yaml.load(Path(CONFIG))
+        return settings['uintahpath']
 
     def find_files(self, folder):
         return [os.path.join(folder, file) for file in os.listdir(folder) if file.endswith(".ups")]
@@ -25,10 +35,16 @@ class Suite:
         return open(os.path.join(os.path.dirname(ups),logname), "w")
 
     def run(self):
-        # Generate logfiles for all files in folder and make a dict of inputfile: logfile
+        """Run all the files in directory, directing stdout to a specified logfile."""
         testsuite = {upsfile: self.logfile(upsfile) for upsfile in self.files}
 
-        processes = [subprocess.Popen([UINTAHPATH, inputfile], stdout=logfile)
+        processes = [subprocess.Popen([self.UINTAHPATH, inputfile], stdout=logfile, stderr=logfile)
                         for inputfile, logfile in testsuite.items()]
         
-        
+        print()
+        print("Pid   Input file")
+        [print(p.pid, p.args[1]) for p in processes]
+        print()
+        print("Waiting for completion... Cancel all with ctrl+c")
+        [p.wait() for p in processes]
+        print("All simulations finished!")

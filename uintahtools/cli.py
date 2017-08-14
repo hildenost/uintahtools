@@ -1,21 +1,14 @@
 """Command line interface for UintahTools."""
+import os
+import readline
 
 import click
-import readline
-import os
-
 from pathlib import Path
-
 from ruamel.yaml import YAML
-from uintahtools import UPS, Suite
 
-CONFIG = "config.yaml"
-CONFIGSTR = """\
-# Configuration file for package uintahtools
+from uintahtools import UPS, Suite, CONFIG, CONFIGSTR
 
-uintahpath: false
-"""
-
+# Tab completion for user prompt
 readline.set_completer_delims(" \t\n")
 readline.parse_and_bind("tab: complete")
 
@@ -24,7 +17,7 @@ def initialize_config():
 
     Also prompts for the uintah executable if this is not set.
     """
-    
+
     # Check settings. We need a path to the Uintah executable
     yaml = YAML()
     p = Path(CONFIG)
@@ -42,14 +35,12 @@ def initialize_config():
             # Verify that the input path is valid and existing before setting
             # Also expand the path so it is absolute before storing
             try:
-                Path(suggestion).resolve()
                 Path(suggestion).exists()
             except FileNotFoundError:
                 print("Please enter a valid path.")
             else:
                 settings["uintahpath"] = suggestion
                 break
-        
         yaml.dump(settings, p)
 
 @click.group()
@@ -66,7 +57,7 @@ def generate(ups, yaml, run):
     """Generate simulation suite based on a UPS file with settings from a YAML file."""
     folder = UPS(ups, yaml).generate_ups()
     if run:
-        folder_run(os.getcwd())
+        folder_run(os.getcwd(), d=False)
     
 @cli.command("run", short_help="run the simulation suite")
 @click.argument("folder")
