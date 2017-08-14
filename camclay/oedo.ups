@@ -10,13 +10,13 @@
    <Time>
        <maxTime>1</maxTime>
        <initTime>0.0</initTime>
-       <delt_min>1e-8</delt_min>
-       <delt_max>1e-5</delt_max>
-       <max_Timesteps>3000000</max_Timesteps>
+       <delt_min>1e-7</delt_min>
+       <delt_max>1e-4</delt_max>
+       <max_Timesteps>300000000</max_Timesteps>
        <timestep_multiplier>0.4</timestep_multiplier>
    </Time>
    <DataArchiver>
-       <filebase>oedo.uda</filebase>
+       <filebase>camclay.uda</filebase>
        <outputInterval>5.0e-2</outputInterval>
        <save label = "p.particleID"/>
        <save label = "p.x"/>
@@ -27,7 +27,7 @@
 
       <save label = "p.externalforce"/>
        <save label = "p.deformationMeasure" />
-       <save label="p.porepressure" />
+        <save label="p.porepressure" /> 
 <!--       <save label = "g.temperature"/> -->
 <!--       <save label = "g.temperaturenobc"/> -->
        <save label = "g.mass"/>
@@ -59,13 +59,13 @@
                <permeability>1e-3</permeability>
                <porosity>0.4</porosity>
                <constitutive_model type="camclay_imp">
-                   <nu> 0.2</nu>
+                   <nu> 0.3</nu>
                    <e0> 0.9</e0>
-                   <kappa> 0.06</kappa>
+                   <kappa> 0.05</kappa>
                    <lambda> 0.3 </lambda>
-                   <M> 1.2 </M>
-                   <p_ini> 1e3 </p_ini>
-                   <OCR>2</OCR>
+                   <M> 1 </M>
+                   <p_ini> 150000 </p_ini>
+                   <OCR>10</OCR>
                </constitutive_model> 
                <thermal_conductivity>1</thermal_conductivity> 
                <specific_heat>1</specific_heat> 
@@ -98,7 +98,7 @@
              <load> 0 </load>
            </time_point>
            <time_point>
-             <time> 0.001 </time>
+             <time> 1 </time>
              <load> -1e5 </load>
            </time_point>
            <time_point>
@@ -140,7 +140,7 @@
        <Level>
            <Box label="1">
               <lower>[0, 0, 0]   </lower>
-              <upper>[1, 1.2, 0.02]</upper>
+              <upper>[1, 1.2, 0.1]</upper>
               <extraCells>[0,0,0]      </extraCells>
               <patches>[1,1,1]         </patches>
            <resolution>[6, 48, 1]</resolution>
