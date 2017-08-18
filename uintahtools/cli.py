@@ -6,7 +6,7 @@ import click
 from pathlib import Path
 from ruamel.yaml import YAML
 
-from uintahtools import UPS, Suite, CONFIG, CONFIGSTR
+from uintahtools import UPS, Suite, CONFIG, CONFIGSTR, udaplot
 
 # Tab completion for user prompt
 readline.set_completer_delims(" \t\n")
@@ -48,6 +48,13 @@ def cli():
     """Command line scripts that simplify working with Uintah ups input files."""
     initialize_config()
 
+@cli.command("plot", short_help="plot two variables")
+@click.argument("xvar")
+@click.argument("yvar")
+def plot(xvar, yvar):
+    click.echo("Plotting ...")
+    udaplot(xvar, yvar)
+    click.echo("Finished!")
 
 @cli.command("generate", short_help="generate simulation suite")
 @click.argument("ups", type=click.File())

@@ -45,6 +45,6 @@ class Suite:
         print("Pid   Input file")
         [print(p.pid, p.args[1]) for p in processes]
         print()
-        print("Waiting for completion... Cancel all with ctrl+c")
+        print("Waiting for completion... Run all in background with ctrl+c")
         [p.wait() for p in processes]
         print("All simulations finished!")

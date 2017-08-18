@@ -1,0 +1,33 @@
+#!/bin/bash
+
+timesteps='0 20 50 100 200 500 1000'
+
+extract() {
+    ~/trunk/dbg/StandAlone/puda -partvar $1 ~/trunk/tests/1Dworking.uda >> $2
+}
+
+> pores.dat
+> partpos.dat
+
+# for timestep in $timesteps
+# do
+extract $1 xs.dat
+extract $2 ys.dat
+# done
+
+# Ugly. Will maybe refactor later
+
+# Adding together the two files columnwise into new file
+paste xs.dat ys.dat > terzaghi.dat
+
+# Extracting columns time, pore pressure and depth
+awk '{print $1, $5, $11}' terzaghi.dat > temp.dat
+
+# Removing every line that does not start with a number
+sed -ni '/^[0-9].*/p' temp.dat
+
+# We need only one record per y-coordinate
+awk 'NR % 6 == 0' temp.dat > terzaghi.dat
+
+# Cleaning up after ourselves
+rm xs.dat ys.dat temp.dat
