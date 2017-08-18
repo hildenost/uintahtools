@@ -51,9 +51,11 @@ def cli():
 @cli.command("plot", short_help="plot two variables")
 @click.argument("xvar")
 @click.argument("yvar")
-def plot(xvar, yvar):
+@click.argument("uda")
+def plot(xvar, yvar, uda):
+    """Create a simple 2D scatter plot with XVAR vs YVAR found in the given UDA folder."""
     click.echo("Plotting ...")
-    udaplot(xvar, yvar)
+    udaplot(xvar, yvar, uda)
     click.echo("Finished!")
 
 @cli.command("generate", short_help="generate simulation suite")

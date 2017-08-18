@@ -5,10 +5,15 @@ to make a simple 2D scatter plot with matplotlib. Output points are also stored 
 a dat-file.
 
 """
-from pandas import Series, Dataframe
+from pandas import Series, DataFrame
 import pandas as pd
 import subprocess
 
-def udaplot(x, y):
-    print("Plotting x:", x, " vs  y:", y)
+def udaplot(x, y, uda):
+    print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
+    
+    # Extracting columns
     subprocess.call(["./uintahtools/terzaghi", x, y])
+
+    df = pd.read_table("xs.dat")
+    print(df)
