@@ -23,6 +23,10 @@ def header(var):
         return FIXEDCOLS + [var]
     return FIXEDCOLS + HEADERS[var]
 
+def normalize(var, wrt, flip=False):
+    """Function to normalize var with regards to wrt."""
+    return 1.0 - var/wrt if flip else var/wrt
+
 def udaplot(x, y, uda):
     """Main function.
 
@@ -31,20 +35,28 @@ def udaplot(x, y, uda):
         2. Extract YVAR from uda
       x 3. Store XVAR and YVAR in their respective dataframes
       x 4. Set column names
-        4. Merge dataframes
-        5. Extract the columns needed: time, XVAR, YVAR
+      x 5. Merge dataframes
+      x 6. Drop duplicates (removes the need for line select)
+        7. Column select: time, XVAR, YVAR
+      x 8. Normalize variables
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
     
     # Extracting columns
     # subprocess.call(["./uintahtools/terzaghi", x, y])
-    print("Done with bashing about")
+    # print("Done with bashing about")
     read_table = partial(pd.read_table, header=None,
                                         skiprows=2,
-                                        nrows=15, #Uncomment for testing purposes
+                                        # nrows=100, #Uncomment for testing purposes
                                         sep="\s+"
                                         )
-    df = read_table("ys.dat", names=header(y))
+    df1 = read_table("ys.dat", names=header(y))
+    df2 = read_table("xs.dat", names=header(x))
+    selected = ['time', 'y', 'pw']
+    df = pd.merge(df1, df2).filter(selected).drop_duplicates(selected)
     print(df)
-    df = read_table("xs.dat", names=header(x))
+    pwnorm = partial(normalize, wrt=-10000)
+    ynorm = partial(normalize, wrt=1, flip=True)
+    df['pw'] = df['pw'].map(lambda x: pwnorm(x))
+    df['y'] = df['y'].map(lambda x: ynorm(x))
     print(df)
