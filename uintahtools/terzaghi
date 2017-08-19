@@ -22,14 +22,14 @@ extract $2 $y
 # Adding together the two files columnwise into new file
 paste $x $y > terzaghi.dat
 
-# Extracting columns time, pore pressure and depth
-awk '{print $1, $5, $11}' terzaghi.dat > temp.dat
-
 # Removing every line that does not start with a number
-sed -ni '/^[0-9].*/p' temp.dat
+sed -ni '/^[0-9].*/p' terzaghi.dat
+
+# Extracting columns time, pore pressure and depth
+#awk '{print $1, $5, $11}' terzaghi.dat > temp.dat
 
 # We need only one record per y-coordinate
-awk 'NR % 6 == 0' temp.dat > terzaghi.dat
+#awk 'NR % 6 == 0' temp.dat > terzaghi.dat
 
 # Cleaning up after ourselves
 # rm $x $y temp.dat
