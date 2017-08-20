@@ -23,9 +23,14 @@ def header(var):
         return FIXEDCOLS + [var]
     return FIXEDCOLS + HEADERS[var]
 
-def normalize(var, wrt, flip=False):
-    """Function to normalize var with regards to wrt."""
-    return 1.0 - var/wrt if flip else var/wrt
+def normalize(var, varmax, varmin=0, flip=False):
+    """Function to normalize var with regards to wrt.
+    
+    Normalizes to the range [0, 1] where var_min scales to 0 by default,
+    but this can be flipped. Resulting values can lie outside the range.
+
+    """
+    return (varmax - var)/(varmax-varmin) if flip else (var-varmin)/(varmax-varmin)
 
 def udaplot(x, y, uda):
     """Main function.
@@ -37,7 +42,7 @@ def udaplot(x, y, uda):
       x 4. Set column names
       x 5. Merge dataframes
       x 6. Drop duplicates (removes the need for line select)
-        7. Column select: time, XVAR, YVAR
+      x 7. Column select: time, XVAR, YVAR
       x 8. Normalize variables
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
@@ -52,11 +57,15 @@ def udaplot(x, y, uda):
                                         )
     df1 = read_table("ys.dat", names=header(y))
     df2 = read_table("xs.dat", names=header(x))
+    
     selected = ['time', 'y', 'pw']
+    
     df = pd.merge(df1, df2).filter(selected).drop_duplicates(selected)
-    print(df)
-    pwnorm = partial(normalize, wrt=-10000)
-    ynorm = partial(normalize, wrt=1, flip=True)
+    
+    pwnorm = partial(normalize, varmax=-10000)
+    ynorm = partial(normalize, varmax=1, flip=True)
+    
     df['pw'] = df['pw'].map(lambda x: pwnorm(x))
     df['y'] = df['y'].map(lambda x: ynorm(x))
+    
     print(df)
