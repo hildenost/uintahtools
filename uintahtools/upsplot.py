@@ -5,11 +5,19 @@ to make a simple 2D scatter plot with matplotlib. Output points are also stored 
 a dat-file.
 
 """
+import os
 from functools import partial
 from pandas import Series, DataFrame
 import pandas as pd
 import subprocess
+from pathlib import Path
+from ruamel.yaml import YAML
+from uintahtools import CONFIG
 
+# Creating global variable PUDA
+yaml = YAML()
+load = yaml.load(Path(CONFIG))
+PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 
 def header(var):
     """Creates column headers based on extracted variable."""
@@ -32,12 +40,17 @@ def normalize(var, varmax, varmin=0, flip=False):
     """
     return (varmax - var)/(varmax-varmin) if flip else (var-varmin)/(varmax-varmin)
 
+def construct_cmd(var, uda):
+    """Creating the command line instruction to extract variable."""
+#  ~/trunk/dbg/StandAlone/puda -partvar $1 ~/trunk/tests/1Dworking.uda >> $2
+    return [PUDA, "-partvar", var, uda]
+
 def udaplot(x, y, uda):
     """Main function.
 
     Steps:
-        1. Extract XVAR from uda
-        2. Extract YVAR from uda
+        1. Extract XVAR from uda <-|
+        2. Extract YVAR from uda <-|-Both should pipe the output to the read_table function
       x 3. Store XVAR and YVAR in their respective dataframes
       x 4. Set column names
       x 5. Merge dataframes
@@ -55,6 +68,7 @@ def udaplot(x, y, uda):
                                         # nrows=100, #Uncomment for testing purposes
                                         sep="\s+"
                                         )
+
     df1 = read_table("ys.dat", names=header(y))
     df2 = read_table("xs.dat", names=header(x))
     

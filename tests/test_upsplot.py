@@ -1,6 +1,8 @@
 """Tests for module upsplot."""
 
-from uintahtools.upsplot import normalize, header
+import pytest
+
+from uintahtools.upsplot import normalize, header, construct_cmd
 
 # Tests for normalize function
 def test_normalize_1wrt5():
@@ -16,12 +18,28 @@ def test_normalize_6wrt5():
     assert normalize(6, varmax=5) == 1.2
 
 # Tests for header function
-def test_headers_for_px():
+@pytest.fixture()
+def before():
+    print("\nBefore every test...............")
+
+def test_headers_for_px(before):
     assert header("p.x") == ["time", "patch", "matl", "partId", "x", "y", "z"]
 
-def test_headers_for_pporepressure():
+def test_headers_for_pporepressure(before):
     assert header("p.porepressure") == ["time", "patch", "matl", "partId", "pw"]
 
-def test_undefined_header():
+def test_undefined_header(before):
     var = "p.undefined"
     assert header(var) == ["time", "patch", "matl", "partId", var]
+
+# Tests for the main body
+@pytest.fixture()
+def basics():
+    puda = "/home/hilde/trunk/opt/StandAlone/puda"
+    uda = "/home/hilde/trunk/tests/1Dworking.uda"
+    return (puda, uda)
+
+def test_construct_cmd(basics):
+    var = "p.x"
+    puda, uda = basics
+    assert construct_cmd(var, uda) == [puda, "-partvar", var, uda]
