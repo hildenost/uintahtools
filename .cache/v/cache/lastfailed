@@ -2,5 +2,14 @@
   "tests/test_upsplot.py::TestNormalize::()::test_normalize_1wrt5": true,
   "tests/test_upsplot.py::TestNormalize::()::test_normalize_1wrt5_flip": true,
   "tests/test_upsplot.py::TestNormalize::()::test_normalize_1wrt5_varmin__2_varmax_2": true,
-  "tests/test_upsplot.py::TestNormalize::()::test_normalize_6wrt5": true
+  "tests/test_upsplot.py::TestNormalize::()::test_normalize_6wrt5": true,
+  "tests/test_upsplot.py::test_construct_cmd": true,
+  "tests/test_upsplot.py::test_construct_cmd_with_time": true,
+  "tests/test_upsplot.py::test_headers_for_pporepressure": true,
+  "tests/test_upsplot.py::test_headers_for_px": true,
+  "tests/test_upsplot.py::test_normalize_1wrt5": true,
+  "tests/test_upsplot.py::test_normalize_1wrt5_flip": true,
+  "tests/test_upsplot.py::test_normalize_1wrt5_varmin__2_varmax_2": true,
+  "tests/test_upsplot.py::test_normalize_6wrt5": true,
+  "tests/test_upsplot.py::test_undefined_header": true
 }

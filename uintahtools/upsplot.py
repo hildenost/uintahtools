@@ -6,7 +6,9 @@ a dat-file.
 
 """
 import os
+import re
 from functools import partial
+import numpy as np
 from pandas import Series, DataFrame
 import pandas as pd
 import subprocess
@@ -35,15 +37,39 @@ def normalize(var, varmax, varmin=0, flip=False):
     """Function to normalize var with regards to wrt.
     
     Normalizes to the range [0, 1] where var_min scales to 0 by default,
-    but this can be flipped. Resulting values can lie outside the range.
+    and the range can be flipped. Resulting values can lie outside the range.
 
     """
     return (varmax - var)/(varmax-varmin) if flip else (var-varmin)/(varmax-varmin)
 
-def construct_cmd(var, uda):
-    """Creating the command line instruction to extract variable."""
+def get_timestep(time, uda):
+    """For a given time, return the timestep number."""
+    cmd = [PUDA, "-timesteps", uda]
+    # Running the command, fetching the output and decode it to string
+    timesteps = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
+    
+    pattern = re.compile("(?P<timestep>\d+): (?P<simtime>.*)", re.MULTILINE)
+    
+    # result = pattern.findall(timesteps)
+        # result = [m.groupdict() for m in pattern.finditer(output)]
+    for match in pattern.finditer(timesteps):
+        if np.isclose(float(match.group("simtime")), time):
+            return match.group("timestep")
+
+
+def construct_cmd(var, uda, time=None):
+    """Creating the command line instruction to extract variable.
+    
+    If time is provided, the timestep options are included in the command.
+    """
 #  ~/trunk/dbg/StandAlone/puda -partvar $1 ~/trunk/tests/1Dworking.uda >> $2
-    return [PUDA, "-partvar", var, uda]
+    cmd = [PUDA, "-partvar", var, uda]
+    if time:
+        if isinstance(time, list):
+            cmd[-1:-1] = ["-timesteplow", str(time[0]), "-timestephigh", str(time[1])]
+        else:
+            cmd[-1:-1] = ["-timesteplow", str(time), "-timestephigh", str(time)]
+    return cmd
 
 def udaplot(x, y, uda):
     """Main function.
@@ -69,17 +95,21 @@ def udaplot(x, y, uda):
                                         sep="\s+"
                                         )
 
-    df1 = read_table("ys.dat", names=header(y))
-    df2 = read_table("xs.dat", names=header(x))
+    timeseries = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
+    [print(construct_cmd("p.x", uda, time=time)) for time in timeseries]
     
-    selected = ['time', 'y', 'pw']
+    subprocess.call(construct_cmd("p.x", uda, time=[0.02, 1.1]))
+    # df1 = read_table("ys.dat", names=header(y))
+    # df2 = read_table("xs.dat", names=header(x))
     
-    df = pd.merge(df1, df2).filter(selected).drop_duplicates(selected)
+    # selected = ['time', 'y', 'pw']
     
-    pwnorm = partial(normalize, varmax=-10000)
-    ynorm = partial(normalize, varmax=1, flip=True)
+    # df = pd.merge(df1, df2).filter(selected).drop_duplicates(selected)
     
-    df['pw'] = df['pw'].map(lambda x: pwnorm(x))
-    df['y'] = df['y'].map(lambda x: ynorm(x))
+    # pwnorm = partial(normalize, varmax=-10000)
+    # ynorm = partial(normalize, varmax=1, flip=True)
     
-    print(df)
+    # df['pw'] = df['pw'].map(lambda x: pwnorm(x))
+    # df['y'] = df['y'].map(lambda x: ynorm(x))
+    
+    # print(df)

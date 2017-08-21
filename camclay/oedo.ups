@@ -54,7 +54,7 @@
     <MaterialProperties>
        <MPM>
             <material>
-               <density>1600</density>
+               <density>1700</density>
                <water_density>1000</water_density>
                <permeability>1e-3</permeability>
                <porosity>0.4</porosity>
@@ -64,8 +64,8 @@
                    <kappa> 0.05</kappa>
                    <lambda> 0.3 </lambda>
                    <M> 1.2 </M>
-                   <p_ini> 1 </p_ini>
-                   <OCR>2</OCR>
+                   <p_ini> 15 </p_ini>
+                   <OCR>100</OCR>
                </constitutive_model> 
                <thermal_conductivity>1</thermal_conductivity> 
                <specific_heat>1</specific_heat> 
