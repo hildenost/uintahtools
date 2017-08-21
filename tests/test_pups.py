@@ -40,7 +40,24 @@ def basics():
 def test_get_timestep(basics):
     puda, uda = basics
     time = 0.013
-    assert get_timestep(time, uda) == "1301"
+    assert get_timestep(time, uda) == "10"
+
+def test_get_timestep_negative_time(basics):
+    _, uda = basics
+    time = -0.1
+    with pytest.raises(ValueError):
+        get_timestep(time, uda)
+
+def test_get_timestep_negative_time_in_list(basics):
+    _, uda = basics
+    time = [1, -1]
+    with pytest.raises(ValueError):
+        get_timestep(time, uda)
+
+def test_get_timestep_times(basics):
+    puda, uda = basics
+    time = [0.013, 0.1]
+    assert get_timestep(time, uda) == ["1301", "10001"]
 
 def test_get_timestep_time_between_steps(basics):
     _, uda = basics
@@ -62,6 +79,16 @@ def test_construct_cmd_with_time(basics):
     var = "p.x"
     puda, uda = basics
     time = 0.2
+    timestep = int(time*1e5)
     assert construct_cmd(var, uda, time=time) == \
-                        [puda, "-partvar", var, "-timesteplow", str(time),
-                                                "-timestephigh", str(time), uda]
+                        [puda, "-partvar", var, "-timesteplow", str(timestep),
+                                                "-timestephigh", str(timestep), uda]
+
+def test_construct_cmd_with_time_range(basics):
+    var = "p.x"
+    puda, uda = basics
+    time = [0.2, 0.5]
+    timestep = [int(t*1e5) for t in time]
+    assert construct_cmd(var, uda, time=time) == \
+                        [puda, "-partvar", var, "-timesteplow", str(timestep[0]),
+                                                "-timestephigh", str(timestep[1]), uda]

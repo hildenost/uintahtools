@@ -44,46 +44,73 @@ def normalize(var, varmax, varmin=0, flip=False):
 
 def get_timestep(time, uda):
     """For a given time, return the timestep number.
+
+    Time can be a list as well as a scalar.
     
     Uintah timesteps equals rounded off time*1e5. Will return
     the closest timestep by default if input time is between valid timesteps.
 
     """
-    conversion_factor = 1e5
-    # Convert time to timestep:
-    timestep = int(time*conversion_factor)
+    if not isinstance(time, list):
+        time = [time]
+    
+    if any(t<0 for t in time):
+        raise ValueError("Invalid time provided. Minimum is 0.")
 
     cmd = [PUDA, "-timesteps", uda]
     # Running the command, fetching the output and decode it to string
+    call = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
     result = re.findall(
         "(?P<timestep>\d+): .*",
-        subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8"),
+        call,
         re.MULTILINE)
+    maxhigh = re.search(
+        "There are (?P<count>\d+) timesteps",
+        call,
+        re.MULTILINE).group("count")
+
+    maxstep = int(result[-1])
+    
+    conversion_factor = 1e5
+    # Convert time to timestep:
+    timesteps = [t*conversion_factor for t in time]
     
     # Check if timestep is within bounds:
-    maxstep = int(result[-1])
-    if timestep > maxstep:
+    if any(timestep > maxstep for timestep in timesteps):
         raise AttributeError(
             "Provided time {time} is out of bounds. Max time is {max}".format(
                 time=time,
                 max=maxstep/conversion_factor
             ))
 
-    return str(timestep) if timestep in result else \
-            min(result, key=lambda k: abs(int(k)-timestep))
+    # Converting the timestep integer to the timestep count
+    timesteps = [i for i, timestep in enumerate(result)]
+    print(timesteps)
+
+    # Return a scalar if len(timestep) is 1, a list if it is 2
+    return_value = [str(time)
+        if time in result else min(result, key=lambda k: abs(int(k)-time))
+        for time in timesteps]
+    return return_value if len(return_value) > 1 else return_value[0]
 
 def construct_cmd(var, uda, time=None):
     """Creating the command line instruction to extract variable.
     
-    If time is provided, the timestep options are included in the command.
+    If time is provided, the timestep options are included in the command. Time can
+    be a list as [mintime, maxtime], and returns results inbetween as well. Time can
+    be a single float value, in which case only the snapshot is returned.
+
+    This function should be invoked in a loop if one wishes to extract a given set
+    of time snapshots.
     """
-#  ~/trunk/dbg/StandAlone/puda -partvar $1 ~/trunk/tests/1Dworking.uda >> $2
     cmd = [PUDA, "-partvar", var, uda]
     if time:
-        if isinstance(time, list):
-            cmd[-1:-1] = ["-timesteplow", str(time[0]), "-timestephigh", str(time[1])]
+        # Converting the time float to timestep integer
+        timestep = get_timestep(time, uda)
+        if isinstance(timestep, list):
+            cmd[-1:-1] = ["-timesteplow", str(timestep[0]), "-timestephigh", str(timestep[1])]
         else:
-            cmd[-1:-1] = ["-timesteplow", str(time), "-timestephigh", str(time)]
+            cmd[-1:-1] = ["-timesteplow", str(timestep), "-timestephigh", str(timestep)]
     return cmd
 
 def udaplot(x, y, uda):
