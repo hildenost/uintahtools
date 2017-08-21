@@ -43,19 +43,44 @@ def normalize(var, varmax, varmin=0, flip=False):
     return (varmax - var)/(varmax-varmin) if flip else (var-varmin)/(varmax-varmin)
 
 def get_timestep(time, uda):
-    """For a given time, return the timestep number."""
+    """For a given time, return the timestep number.
+    
+    Uintah timesteps equals rounded off time<float>*1e5. Will floor the result
+    to the nearest timestep by default if input time is between valid timesteps.
+
+    """
+    conversion_factor = 1e5
+    # Convert time to timestep:
+    timestep = int(time*conversion_factor)
+
+
+    print("From",time,"to",int(time*conversion_factor))
+
     cmd = [PUDA, "-timesteps", uda]
     # Running the command, fetching the output and decode it to string
     timesteps = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
-    
-    pattern = re.compile("(?P<timestep>\d+): (?P<simtime>.*)", re.MULTILINE)
-    
-    # result = pattern.findall(timesteps)
-        # result = [m.groupdict() for m in pattern.finditer(output)]
-    for match in pattern.finditer(timesteps):
-        if np.isclose(float(match.group("simtime")), time):
-            return match.group("timestep")
+    print(timesteps)
+    pattern = re.compile("(?P<timestep>\d+): (?P<simtime>.*)", re.MULTILINE)  
+    result = pattern.findall(timesteps)
 
+
+    # Check if timestep is within bounds:
+    if timestep > int(result[-1][0]): # The last result is the maximum timestep
+        raise AttributeError(
+            "Provided time {time} is out of bounds. Max time is {max}".format(
+                time=time,
+                max=max_step/conversion_factor
+            ))
+
+
+        # result = [m.groupdict() for m in pattern.finditer(output)]
+    
+    # Relative tolerance should be size of timestep
+    for match in pattern.finditer(timesteps):
+        if 100 <= int(match.group("timestep")) <= 150:
+            print(match.group("timestep"), match.group("simtime"), round(float(match.group("simtime")), 4))
+
+    return str(int(time*conversion_factor))
 
 def construct_cmd(var, uda, time=None):
     """Creating the command line instruction to extract variable.

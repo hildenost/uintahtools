@@ -1,4 +1,4 @@
 from uintahtools.constants import CONFIG, CONFIGSTR
-from uintahtools.upschanger import UPS
-from uintahtools.upsrun import Suite
-from uintahtools.upsplot import udaplot
+from uintahtools.chups import UPS
+from uintahtools.runups import Suite
+from uintahtools.pups import udaplot
