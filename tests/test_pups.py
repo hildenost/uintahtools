@@ -19,17 +19,13 @@ def test_normalize_6wrt5():
     assert normalize(6, varmax=5) == 1.2
 
 # Tests for header function
-@pytest.fixture()
-def before():
-    print("\nBefore every test...............")
-
-def test_headers_for_px(before):
+def test_headers_for_px():
     assert header("p.x") == ["time", "patch", "matl", "partId", "x", "y", "z"]
 
-def test_headers_for_pporepressure(before):
+def test_headers_for_pporepressure():
     assert header("p.porepressure") == ["time", "patch", "matl", "partId", "pw"]
 
-def test_undefined_header(before):
+def test_undefined_header():
     var = "p.undefined"
     assert header(var) == ["time", "patch", "matl", "partId", var]
 
@@ -44,17 +40,18 @@ def basics():
 def test_get_timestep(basics):
     puda, uda = basics
     time = 0.013
-    assert get_timestep(time, uda) == "1300"
+    assert get_timestep(time, uda) == "1301"
 
 def test_get_timestep_time_between_steps(basics):
-    puda, uda = basics
+    _, uda = basics
     time = 0.0135
-    assert get_timestep(time, uda) == "1300"
+    assert get_timestep(time, uda) == "1301"
 
 def test_get_timestep_out_of_bounds(basics):
-    puda, uda = basics
+    _, uda = basics
     time = 2.0
-    with raises  get_timestep(time, uda) == "1300"
+    with pytest.raises(AttributeError):
+        get_timestep(time, uda)
 
 def test_construct_cmd(basics):
     var = "p.x"

@@ -1,4 +1,4 @@
-"""Simple plotting script.
+"""Simple plotting script for Plotting Udas from UPSes.
 
 Provide the x variable and the y variable to be plotted along with the uda-folder
 to make a simple 2D scatter plot with matplotlib. Output points are also stored in 
@@ -45,42 +45,32 @@ def normalize(var, varmax, varmin=0, flip=False):
 def get_timestep(time, uda):
     """For a given time, return the timestep number.
     
-    Uintah timesteps equals rounded off time<float>*1e5. Will floor the result
-    to the nearest timestep by default if input time is between valid timesteps.
+    Uintah timesteps equals rounded off time*1e5. Will return
+    the closest timestep by default if input time is between valid timesteps.
 
     """
     conversion_factor = 1e5
     # Convert time to timestep:
     timestep = int(time*conversion_factor)
 
-
-    print("From",time,"to",int(time*conversion_factor))
-
     cmd = [PUDA, "-timesteps", uda]
     # Running the command, fetching the output and decode it to string
-    timesteps = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
-    print(timesteps)
-    pattern = re.compile("(?P<timestep>\d+): (?P<simtime>.*)", re.MULTILINE)  
-    result = pattern.findall(timesteps)
-
-
+    result = re.findall(
+        "(?P<timestep>\d+): .*",
+        subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8"),
+        re.MULTILINE)
+    
     # Check if timestep is within bounds:
-    if timestep > int(result[-1][0]): # The last result is the maximum timestep
+    maxstep = int(result[-1])
+    if timestep > maxstep:
         raise AttributeError(
             "Provided time {time} is out of bounds. Max time is {max}".format(
                 time=time,
-                max=max_step/conversion_factor
+                max=maxstep/conversion_factor
             ))
 
-
-        # result = [m.groupdict() for m in pattern.finditer(output)]
-    
-    # Relative tolerance should be size of timestep
-    for match in pattern.finditer(timesteps):
-        if 100 <= int(match.group("timestep")) <= 150:
-            print(match.group("timestep"), match.group("simtime"), round(float(match.group("simtime")), 4))
-
-    return str(int(time*conversion_factor))
+    return str(timestep) if timestep in result else \
+            min(result, key=lambda k: abs(int(k)-timestep))
 
 def construct_cmd(var, uda, time=None):
     """Creating the command line instruction to extract variable.
