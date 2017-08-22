@@ -113,9 +113,11 @@ def udaplot(x, y, uda):
     cmds = [construct_cmd("p.x", uda, timestep)
             for timestep in get_timestep(timeseries, timedict)]
     
-    for cmd in cmds:
-        print(cmd)
-    # subprocess.call(construct_cmd("p.x", uda, time=[0.02, 1.1]))
+    lots_of_xes = [subprocess.run(cmd, stdout=subprocess.PIPE) for cmd in cmds]
+
+    for x in lots_of_xes:
+        print()
+        print(x.stdout)
     # df1 = read_table("ys.dat", names=header(y))
     # df2 = read_table("xs.dat", names=header(x))
     
