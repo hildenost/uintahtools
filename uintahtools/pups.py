@@ -41,59 +41,30 @@ def normalize(var, varmax, varmin=0, flip=False):
 
     """
     return (varmax - var)/(varmax-varmin) if flip else (var-varmin)/(varmax-varmin)
-
-def get_timestep(time, uda):
-    """For a given time, return the timestep number.
-
-    Time can be a list as well as a scalar.
     
-    Uintah timesteps equals rounded off time*1e5. Will return
-    the closest timestep by default if input time is between valid timesteps.
-
-    """
-    if not isinstance(time, list):
-        time = [time]
-    
-    if any(t<0 for t in time):
-        raise ValueError("Invalid time provided. Minimum is 0.")
-
+def run_puda_timesteps(uda):
     cmd = [PUDA, "-timesteps", uda]
     # Running the command, fetching the output and decode it to string
-    call = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
+    return subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
+
+def parse_timesteps(output):
+    """Parse timesteps, return a dict of {timestep: simtime}."""
     result = re.findall(
-        "(?P<timestep>\d+): .*",
-        call,
+        "(?P<timestep>\d+): (?P<simtime>.*)",
+        output,
         re.MULTILINE)
-    maxhigh = re.search(
-        "There are (?P<count>\d+) timesteps",
-        call,
-        re.MULTILINE).group("count")
+    return {int(timestep): float(simtime) for timestep, simtime in result}
 
-    maxstep = int(result[-1])
+def get_timestep(times, timedict):
+    """For a given list of times, return the timestep number.
     
-    conversion_factor = 1e5
-    # Convert time to timestep:
-    timesteps = [t*conversion_factor for t in time]
-    
-    # Check if timestep is within bounds:
-    if any(timestep > maxstep for timestep in timesteps):
-        raise AttributeError(
-            "Provided time {time} is out of bounds. Max time is {max}".format(
-                time=time,
-                max=maxstep/conversion_factor
-            ))
+    Will return the closest timestep found in timedict.
 
-    # Converting the timestep integer to the timestep count
-    timesteps = [i for i, timestep in enumerate(result)]
-    print(timesteps)
+    """
+    idx = np.searchsorted(sorted(timedict.values()), times)
+    return [str(i) for i in idx] if isinstance(times, list) else [str(idx)]
 
-    # Return a scalar if len(timestep) is 1, a list if it is 2
-    return_value = [str(time)
-        if time in result else min(result, key=lambda k: abs(int(k)-time))
-        for time in timesteps]
-    return return_value if len(return_value) > 1 else return_value[0]
-
-def construct_cmd(var, uda, time=None):
+def construct_cmd(var, uda, timestep=None):
     """Creating the command line instruction to extract variable.
     
     If time is provided, the timestep options are included in the command. Time can
@@ -104,13 +75,11 @@ def construct_cmd(var, uda, time=None):
     of time snapshots.
     """
     cmd = [PUDA, "-partvar", var, uda]
-    if time:
+    if timestep:
         # Converting the time float to timestep integer
-        timestep = get_timestep(time, uda)
-        if isinstance(timestep, list):
-            cmd[-1:-1] = ["-timesteplow", str(timestep[0]), "-timestephigh", str(timestep[1])]
-        else:
-            cmd[-1:-1] = ["-timesteplow", str(timestep), "-timestephigh", str(timestep)]
+        if not isinstance(timestep, list):
+            timestep = [timestep]
+        cmd[-1:-1] = ["-timesteplow", str(min(timestep)), "-timestephigh", str(max(timestep))]
     return cmd
 
 def udaplot(x, y, uda):
@@ -136,11 +105,17 @@ def udaplot(x, y, uda):
                                         # nrows=100, #Uncomment for testing purposes
                                         sep="\s+"
                                         )
-
     timeseries = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
-    [print(construct_cmd("p.x", uda, time=time)) for time in timeseries]
+
+    output = run_puda_timesteps(uda)
+    timedict = parse_timesteps(output)
+
+    cmds = [construct_cmd("p.x", uda, timestep)
+            for timestep in get_timestep(timeseries, timedict)]
     
-    subprocess.call(construct_cmd("p.x", uda, time=[0.02, 1.1]))
+    for cmd in cmds:
+        print(cmd)
+    # subprocess.call(construct_cmd("p.x", uda, time=[0.02, 1.1]))
     # df1 = read_table("ys.dat", names=header(y))
     # df2 = read_table("xs.dat", names=header(x))
     

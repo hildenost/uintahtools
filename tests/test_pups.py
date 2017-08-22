@@ -3,7 +3,8 @@
 import pytest
 
 from uintahtools.pups import normalize, header, construct_cmd, \
-                                get_timestep
+                                get_timestep, parse_timesteps, \
+                                run_puda_timesteps
 
 # Tests for normalize function
 def test_normalize_1wrt5():
@@ -29,66 +30,68 @@ def test_undefined_header():
     var = "p.undefined"
     assert header(var) == ["time", "patch", "matl", "partId", var]
 
-# Tests for the main body
+# # Tests for the main body
 @pytest.fixture()
 def basics():
     puda = "/home/hilde/trunk/opt/StandAlone/puda"
-    # uda = "/home/hilde/trunk/results/oedo.uda.000"
-    uda = "/home/hilde/trunk/tests/1Dworking.uda"
-    return (puda, uda)
+    uda = "tests/test.uda"
+    return parse_timesteps(run_puda_timesteps(uda))
 
 def test_get_timestep(basics):
-    puda, uda = basics
+    timedict = basics
     time = 0.013
-    assert get_timestep(time, uda) == "10"
+    assert get_timestep(time, timedict) == ["130"]
 
 def test_get_timestep_negative_time(basics):
-    _, uda = basics
+    timedict = basics
     time = -0.1
-    with pytest.raises(ValueError):
-        get_timestep(time, uda)
+    assert get_timestep(time, timedict) == ["0"]
 
 def test_get_timestep_negative_time_in_list(basics):
-    _, uda = basics
-    time = [1, -1]
-    with pytest.raises(ValueError):
-        get_timestep(time, uda)
+    timedict = basics
+    time = [-1, 1]
+    assert get_timestep(time, timedict) == ["0", "10000"]
 
 def test_get_timestep_times(basics):
-    puda, uda = basics
+    timedict = basics
     time = [0.013, 0.1]
-    assert get_timestep(time, uda) == ["1301", "10001"]
+    assert get_timestep(time, timedict) == ["130", "1000"]
 
 def test_get_timestep_time_between_steps(basics):
-    _, uda = basics
-    time = 0.0135
-    assert get_timestep(time, uda) == "1301"
+    timedict = basics
+    time = 0.01355
+    assert get_timestep(time, timedict) == ["136"]
 
 def test_get_timestep_out_of_bounds(basics):
-    _, uda = basics
+    timedict = basics
     time = 2.0
-    with pytest.raises(AttributeError):
-        get_timestep(time, uda)
+    assert get_timestep(time, timedict) == ["10001"]
 
-def test_construct_cmd(basics):
+# Make the command to go with puda
+# TODO: Check for highs and lows in nested timeseries
+@pytest.fixture()
+def udas():
+    puda = "/home/hilde/trunk/opt/StandAlone/puda"
+    uda = "tests/test.uda"
+    return (puda, uda)
+
+def test_construct_cmd(udas):
     var = "p.x"
-    puda, uda = basics
+    puda, uda = udas
     assert construct_cmd(var, uda) == [puda, "-partvar", var, uda]
 
-def test_construct_cmd_with_time(basics):
+def test_construct_cmd_with_time(udas):
     var = "p.x"
-    puda, uda = basics
-    time = 0.2
-    timestep = int(time*1e5)
-    assert construct_cmd(var, uda, time=time) == \
-                        [puda, "-partvar", var, "-timesteplow", str(timestep),
-                                                "-timestephigh", str(timestep), uda]
+    puda, uda = udas
+    time = 2000
+    assert construct_cmd(var, uda, timestep=time) == \
+                        [puda, "-partvar", var, "-timesteplow", str(time),
+                                                "-timestephigh", str(time), uda]
 
-def test_construct_cmd_with_time_range(basics):
+def test_construct_cmd_with_time_range(udas):
     var = "p.x"
-    puda, uda = basics
-    time = [0.2, 0.5]
-    timestep = [int(t*1e5) for t in time]
-    assert construct_cmd(var, uda, time=time) == \
-                        [puda, "-partvar", var, "-timesteplow", str(timestep[0]),
-                                                "-timestephigh", str(timestep[1]), uda]
+    puda, uda = udas
+    time = [2000, 5000]
+    assert construct_cmd(var, uda, timestep=time) == \
+                        [puda, "-partvar", var, "-timesteplow", str(2000),
+                                                "-timestephigh", str(5000), uda]
