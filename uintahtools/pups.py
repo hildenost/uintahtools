@@ -7,6 +7,7 @@ a dat-file.
 """
 import os
 import re
+from io import StringIO
 from functools import partial
 import numpy as np
 from pandas import Series, DataFrame
@@ -110,14 +111,19 @@ def udaplot(x, y, uda):
     output = run_puda_timesteps(uda)
     timedict = parse_timesteps(output)
 
-    cmds = [construct_cmd("p.x", uda, timestep)
-            for timestep in get_timestep(timeseries, timedict)]
-    
-    lots_of_xes = [subprocess.run(cmd, stdout=subprocess.PIPE) for cmd in cmds]
+    for testvar in (x, y):
+        cmds = [construct_cmd(testvar, uda, timestep)
+                for timestep in get_timestep(timeseries, timedict)]
+        
+        lots_of_xes = [StringIO(subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")) for cmd in cmds]
 
-    for x in lots_of_xes:
-        print()
-        print(x.stdout)
+        df = DataFrame()
+        for x in lots_of_xes:
+            dftemp = read_table(x, names=header(testvar))
+            df = dftemp if df.empty else df.append(dftemp)
+
+        print(df)
+        
     # df1 = read_table("ys.dat", names=header(y))
     # df2 = read_table("xs.dat", names=header(x))
     
