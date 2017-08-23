@@ -33,7 +33,7 @@ def test_undefined_header():
 def basics():
     puda = "/home/hilde/trunk/opt/StandAlone/puda"
     uda = "tests/test.uda"
-    return timesteps_parse(run_puda(uda))
+    return timesteps_parse(cmd_run([puda, "-timesteps", uda]))
 
 def test_get_timestep(basics):
     timedict = basics
@@ -66,7 +66,7 @@ def test_get_timestep_out_of_bounds(basics):
     assert timesteps_get(time, timedict) == ["10001"]
 
 # Make the command to go with puda
-# TODO: Check for highs and lows in nested timeseries
+# TODO, though YAGNI: Check for highs and lows in nested timeseries
 @pytest.fixture()
 def udas():
     puda = "/home/hilde/trunk/opt/StandAlone/puda"
@@ -76,13 +76,13 @@ def udas():
 def test_construct_cmd(udas):
     var = "p.x"
     puda, uda = udas
-    assert construct_cmd(var, uda) == [puda, "-partvar", var, uda]
+    assert cmd_make(var, uda) == [puda, "-partvar", var, uda]
 
 def test_construct_cmd_with_time(udas):
     var = "p.x"
     puda, uda = udas
     time = 2000
-    assert construct_cmd(var, uda, timestep=time) == \
+    assert cmd_make(var, uda, timestep=time) == \
                         [puda, "-partvar", var, "-timesteplow", str(time),
                                                 "-timestephigh", str(time), uda]
 
@@ -90,6 +90,17 @@ def test_construct_cmd_with_time_range(udas):
     var = "p.x"
     puda, uda = udas
     time = [2000, 5000]
-    assert construct_cmd(var, uda, timestep=time) == \
+    assert cmd_make(var, uda, timestep=time) == \
                         [puda, "-partvar", var, "-timesteplow", str(2000),
                                                 "-timestephigh", str(5000), uda]
+
+# Testing the dataframe_make
+
+def test_dataframe_make_shape(udas, basics):
+    var = "p.x"
+    __, uda = udas
+    timesteps = ["200", "500", "600", "700"]
+    df = dataframe_assemble(var, timesteps, uda)
+    rows = 240*len(timesteps)
+    columns = len(header(var))
+    assert df.shape == (rows, columns)

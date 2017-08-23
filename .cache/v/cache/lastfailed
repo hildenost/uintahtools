@@ -1,4 +1,5 @@
 {
+  "tests/test_pups.py::test_dataframe_make": true,
   "tests/test_upsplot.py::TestNormalize::()::test_normalize_1wrt5": true,
   "tests/test_upsplot.py::TestNormalize::()::test_normalize_1wrt5_flip": true,
   "tests/test_upsplot.py::TestNormalize::()::test_normalize_1wrt5_varmin__2_varmax_2": true,

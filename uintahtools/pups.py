@@ -9,12 +9,10 @@ import os
 import re
 import subprocess
 from io import StringIO
-from functools import partial
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from pandas import Series, DataFrame
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
@@ -36,20 +34,17 @@ def header(var):
         return FIXEDCOLS + [var]
     return FIXEDCOLS + HEADERS[var]
 
-def normalize(var, varmax=1, varmin=0, flip=False):
+def normalize(var, varmin=0, varmax=1, flip=False):#varmax=1, varmin=0, flip=False):
     """Normalize var to the range [0, 1].
     
     The range can be flipped. Resulting values can lie outside the range.
 
     """
+    print("Variable",var, "with settings", varmin, varmax, flip)
     return (varmax - var)/(varmax-varmin) if flip else (var-varmin)/(varmax-varmin)
-    
-def run_puda(uda):
-    cmd = [PUDA, "-timesteps", uda]
-    return run_cmd(cmd)
 
-def construct_cmd(var, uda, timestep=None):
-    """Create the command line instruction to extract variable.
+def cmd_make(var, uda, timestep=None):
+    """Assemble the command line instruction to extract variable.
     
     If timestep is provided, the timestep options are included in the command. Time can
     be a list as [mintime, maxtime], and returns results inbetween as well. Time can
@@ -58,15 +53,14 @@ def construct_cmd(var, uda, timestep=None):
     This function should be invoked in a loop if one wishes to extract a given set
     of time snapshots.
     """
-    cmd = [PUDA, "-partvar", var, uda]
+    cmdargs = ["-partvar", var]
     if timestep:
-        # Converting the time float to timestep integer
         if not isinstance(timestep, list):
             timestep = [timestep]
-        cmd[-1:-1] = ["-timesteplow", str(min(timestep)), "-timestephigh", str(max(timestep))]
-    return cmd
+        cmdargs.extend(["-timesteplow", str(min(timestep)), "-timestephigh", str(max(timestep))])
+    return [PUDA, *cmdargs, uda]
 
-def run_cmd(cmd):
+def cmd_run(cmd):
     """Shortcut for the long and winding subprocess call output decoder."""
     return subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
 
@@ -83,6 +77,42 @@ def timesteps_get(times, timedict):
     idx = np.searchsorted(sorted(timedict.values()), times)
     return [str(i) for i in idx] if isinstance(times, list) else [str(idx)]
 
+def extracted(variable, uda, timestep):
+    """Extract the variable and wrap it in a stream."""
+    return StringIO(cmd_run(cmd_make(variable, uda, timestep)))
+
+def dataframe_assemble(variable, timesteps, uda):
+    """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
+    def table_read(variable, uda, timestep):
+        """Wraparound function."""
+        return pd.read_table(extracted(variable, uda, timestep),
+                        header=None,
+                        names=header(variable),
+                        skiprows=2,
+                        sep="\s+")
+    dfs = (table_read(variable, uda, timestep) for timestep in timesteps)
+    return pd.concat(dfs)
+
+def dataframe_create(x, y, uda, timesteps, selected):
+    """Create the final dataframe.
+
+    Extracting the variables from the given timesteps, concatenating and merging dataframes
+    to the final shape of selected_cols.
+
+    """
+    settings = {
+        "y": {'flip': True},
+        "pw": {'varmax': -1e4},
+    }
+
+    dfs = [dataframe_assemble(var, timesteps, uda) for var in (x,y)]
+    df = pd.merge(*dfs).filter(selected).drop_duplicates(selected)
+    
+    for col in selected:
+        df[col] = df[col].map(lambda x: normalize(x, **settings[col]))
+    return df
+
+
 def udaplot(x, y, uda):
     """Main function.
 
@@ -96,37 +126,18 @@ def udaplot(x, y, uda):
       x 7. Column select: time, XVAR, YVAR
       x 8. Normalize variables
         9. REFACTOR AND TEST
+
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
-    
-    read_table = partial(pd.read_table, header=None,
-                                        skiprows=2,
-                                        # nrows=100, #Uncomment for testing purposes
-                                        sep="\s+"
-                                        )
 
     timeseries = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
 
-    timesteps = timesteps_get(timeseries, timesteps_parse(run_puda(uda)))
+    timesteps = timesteps_get(
+        times=timeseries,
+        timedict=timesteps_parse(cmd_run([PUDA, "-timesteps", uda]))
+        )
 
-    dfs = []
-    for testvar in (x, y):
-        cmds = [construct_cmd(testvar, uda, timestep)
-                for timestep in timesteps]
-        
-        lots_of_xes = [StringIO(subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")) for cmd in cmds]
-
-        df = DataFrame()
-        for x in lots_of_xes:
-            dftemp = read_table(x, names=header(testvar))
-            df = dftemp if df.empty else df.append(dftemp)
-
-        dfs.append(df)
-
-    selected = ['time', 'y', 'pw']
-    df = pd.merge(*dfs).filter(selected).drop_duplicates(selected)
-    
-    df['pw'] = df['pw'].map(lambda x: normalize(x, varmax=-1e4))
-    df['y'] = df['y'].map(lambda x: normalize(x, flip=True))
+    selected = ['y', 'pw']
+    df = dataframe_create(x, y, uda, timesteps, selected)
     
     print(df)
