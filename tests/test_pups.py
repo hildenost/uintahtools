@@ -2,9 +2,7 @@
 
 import pytest
 
-from uintahtools.pups import normalize, header, construct_cmd, \
-                                get_timestep, parse_timesteps, \
-                                run_puda_timesteps
+from uintahtools.pups import *
 
 # Tests for normalize function
 def test_normalize_1wrt5():
@@ -35,37 +33,37 @@ def test_undefined_header():
 def basics():
     puda = "/home/hilde/trunk/opt/StandAlone/puda"
     uda = "tests/test.uda"
-    return parse_timesteps(run_puda_timesteps(uda))
+    return timesteps_parse(run_puda(uda))
 
 def test_get_timestep(basics):
     timedict = basics
     time = 0.013
-    assert get_timestep(time, timedict) == ["130"]
+    assert timesteps_get(time, timedict) == ["130"]
 
 def test_get_timestep_negative_time(basics):
     timedict = basics
     time = -0.1
-    assert get_timestep(time, timedict) == ["0"]
+    assert timesteps_get(time, timedict) == ["0"]
 
 def test_get_timestep_negative_time_in_list(basics):
     timedict = basics
     time = [-1, 1]
-    assert get_timestep(time, timedict) == ["0", "10000"]
+    assert timesteps_get(time, timedict) == ["0", "10000"]
 
 def test_get_timestep_times(basics):
     timedict = basics
     time = [0.013, 0.1]
-    assert get_timestep(time, timedict) == ["130", "1000"]
+    assert timesteps_get(time, timedict) == ["130", "1000"]
 
 def test_get_timestep_time_between_steps(basics):
     timedict = basics
     time = 0.01355
-    assert get_timestep(time, timedict) == ["136"]
+    assert timesteps_get(time, timedict) == ["136"]
 
 def test_get_timestep_out_of_bounds(basics):
     timedict = basics
     time = 2.0
-    assert get_timestep(time, timedict) == ["10001"]
+    assert timesteps_get(time, timedict) == ["10001"]
 
 # Make the command to go with puda
 # TODO: Check for highs and lows in nested timeseries
