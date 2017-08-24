@@ -1,4 +1,4 @@
-"""Simple plotting script for Plotting Udas from UPSes.
+"""Simple plotting script for Plotting outputs from UPSes.
 
 Provide the x variable and the y variable to be plotted along with the uda-folder
 to make a simple 2D scatter plot with matplotlib. Output points are also stored in 
@@ -7,13 +7,14 @@ a dat-file.
 """
 import os
 import re
-from functools import partial
-import numpy as np
-from pandas import Series, DataFrame
-import pandas as pd
 import subprocess
+from io import StringIO
 from pathlib import Path
+
+import numpy as np
+import pandas as pd
 from ruamel.yaml import YAML
+
 from uintahtools import CONFIG
 
 # Creating global variable PUDA
@@ -22,7 +23,7 @@ load = yaml.load(Path(CONFIG))
 PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 
 def header(var):
-    """Creates column headers based on extracted variable."""
+    """Create column headers based on extracted variable."""
     FIXEDCOLS = ["time", "patch", "matl", "partId"]
     HEADERS = {
         "p.x": ["x", "y", "z"],
@@ -33,125 +34,110 @@ def header(var):
         return FIXEDCOLS + [var]
     return FIXEDCOLS + HEADERS[var]
 
-def normalize(var, varmax, varmin=0, flip=False):
-    """Function to normalize var with regards to wrt.
+def normalize(var, varmin=0, varmax=1, flip=False):#varmax=1, varmin=0, flip=False):
+    """Normalize var to the range [0, 1].
     
-    Normalizes to the range [0, 1] where var_min scales to 0 by default,
-    and the range can be flipped. Resulting values can lie outside the range.
+    The range can be flipped. Resulting values can lie outside the range.
 
     """
+    print("Variable",var, "with settings", varmin, varmax, flip)
     return (varmax - var)/(varmax-varmin) if flip else (var-varmin)/(varmax-varmin)
 
-def get_timestep(time, uda):
-    """For a given time, return the timestep number.
-
-    Time can be a list as well as a scalar.
+def cmd_make(var, uda, timestep=None):
+    """Assemble the command line instruction to extract variable.
     
-    Uintah timesteps equals rounded off time*1e5. Will return
-    the closest timestep by default if input time is between valid timesteps.
-
-    """
-    if not isinstance(time, list):
-        time = [time]
-    
-    if any(t<0 for t in time):
-        raise ValueError("Invalid time provided. Minimum is 0.")
-
-    cmd = [PUDA, "-timesteps", uda]
-    # Running the command, fetching the output and decode it to string
-    call = subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
-    result = re.findall(
-        "(?P<timestep>\d+): .*",
-        call,
-        re.MULTILINE)
-    maxhigh = re.search(
-        "There are (?P<count>\d+) timesteps",
-        call,
-        re.MULTILINE).group("count")
-
-    maxstep = int(result[-1])
-    
-    conversion_factor = 1e5
-    # Convert time to timestep:
-    timesteps = [t*conversion_factor for t in time]
-    
-    # Check if timestep is within bounds:
-    if any(timestep > maxstep for timestep in timesteps):
-        raise AttributeError(
-            "Provided time {time} is out of bounds. Max time is {max}".format(
-                time=time,
-                max=maxstep/conversion_factor
-            ))
-
-    # Converting the timestep integer to the timestep count
-    timesteps = [i for i, timestep in enumerate(result)]
-    print(timesteps)
-
-    # Return a scalar if len(timestep) is 1, a list if it is 2
-    return_value = [str(time)
-        if time in result else min(result, key=lambda k: abs(int(k)-time))
-        for time in timesteps]
-    return return_value if len(return_value) > 1 else return_value[0]
-
-def construct_cmd(var, uda, time=None):
-    """Creating the command line instruction to extract variable.
-    
-    If time is provided, the timestep options are included in the command. Time can
+    If timestep is provided, the timestep options are included in the command. Time can
     be a list as [mintime, maxtime], and returns results inbetween as well. Time can
     be a single float value, in which case only the snapshot is returned.
 
     This function should be invoked in a loop if one wishes to extract a given set
     of time snapshots.
     """
-    cmd = [PUDA, "-partvar", var, uda]
-    if time:
-        # Converting the time float to timestep integer
-        timestep = get_timestep(time, uda)
-        if isinstance(timestep, list):
-            cmd[-1:-1] = ["-timesteplow", str(timestep[0]), "-timestephigh", str(timestep[1])]
-        else:
-            cmd[-1:-1] = ["-timesteplow", str(timestep), "-timestephigh", str(timestep)]
-    return cmd
+    cmdargs = ["-partvar", var]
+    if timestep:
+        if not isinstance(timestep, list):
+            timestep = [timestep]
+        cmdargs.extend(["-timesteplow", str(min(timestep)), "-timestephigh", str(max(timestep))])
+    return [PUDA, *cmdargs, uda]
+
+def cmd_run(cmd):
+    """Shortcut for the long and winding subprocess call output decoder."""
+    return subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
+
+def timesteps_parse(output):
+    """Parse timesteps, return a dict of {timestep: simtime}."""
+    result = re.findall(
+        "(?P<timestep>\d+): (?P<simtime>.*)",
+        output,
+        re.MULTILINE)
+    return {int(timestep): float(simtime) for timestep, simtime in result}
+
+def timesteps_get(times, timedict):
+    """For a given list of times, return the index of the best-fitting timestep."""
+    idx = np.searchsorted(sorted(timedict.values()), times)
+    return [str(i) for i in idx] if isinstance(times, list) else [str(idx)]
+
+def extracted(variable, uda, timestep):
+    """Extract the variable and wrap it in a stream."""
+    return StringIO(cmd_run(cmd_make(variable, uda, timestep)))
+
+def dataframe_assemble(variable, timesteps, uda):
+    """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
+    def table_read(variable, uda, timestep):
+        """Wraparound function."""
+        return pd.read_table(extracted(variable, uda, timestep),
+                        header=None,
+                        names=header(variable),
+                        skiprows=2,
+                        sep="\s+")
+    dfs = (table_read(variable, uda, timestep) for timestep in timesteps)
+    return pd.concat(dfs)
+
+def dataframe_create(x, y, uda, timesteps, selected):
+    """Create the final dataframe.
+
+    Extracting the variables from the given timesteps, concatenating and merging dataframes
+    to the final shape of selected_cols.
+
+    """
+    settings = {
+        "y": {'flip': True},
+        "pw": {'varmax': -1e4},
+    }
+
+    dfs = [dataframe_assemble(var, timesteps, uda) for var in (x,y)]
+    df = pd.merge(*dfs).filter(selected).drop_duplicates(selected)
+    
+    for col in selected:
+        df[col] = df[col].map(lambda x: normalize(x, **settings[col]))
+    return df
+
 
 def udaplot(x, y, uda):
     """Main function.
 
     Steps:
-        1. Extract XVAR from uda <-|
-        2. Extract YVAR from uda <-|-Both should pipe the output to the read_table function
+      x 1. Extract XVAR from uda <-|
+      x 2. Extract YVAR from uda <-|-Both should pipe the output to the read_table function
       x 3. Store XVAR and YVAR in their respective dataframes
       x 4. Set column names
       x 5. Merge dataframes
       x 6. Drop duplicates (removes the need for line select)
       x 7. Column select: time, XVAR, YVAR
       x 8. Normalize variables
+        9. REFACTOR AND TEST
+
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
-    
-    # Extracting columns
-    # subprocess.call(["./uintahtools/terzaghi", x, y])
-    # print("Done with bashing about")
-    read_table = partial(pd.read_table, header=None,
-                                        skiprows=2,
-                                        # nrows=100, #Uncomment for testing purposes
-                                        sep="\s+"
-                                        )
 
     timeseries = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
-    [print(construct_cmd("p.x", uda, time=time)) for time in timeseries]
+
+    timesteps = timesteps_get(
+        times=timeseries,
+        timedict=timesteps_parse(cmd_run([PUDA, "-timesteps", uda]))
+        )
+
+    selected = ['y', 'pw']
+    df = dataframe_create(x, y, uda, timesteps, selected)
     
-    subprocess.call(construct_cmd("p.x", uda, time=[0.02, 1.1]))
-    # df1 = read_table("ys.dat", names=header(y))
-    # df2 = read_table("xs.dat", names=header(x))
-    
-    # selected = ['time', 'y', 'pw']
-    
-    # df = pd.merge(df1, df2).filter(selected).drop_duplicates(selected)
-    
-    # pwnorm = partial(normalize, varmax=-10000)
-    # ynorm = partial(normalize, varmax=1, flip=True)
-    
-    # df['pw'] = df['pw'].map(lambda x: pwnorm(x))
-    # df['y'] = df['y'].map(lambda x: ynorm(x))
-    
-    # print(df)
+    print(df)
