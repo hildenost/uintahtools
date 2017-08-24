@@ -14,5 +14,5 @@ pytz==2017.2
 PyYAML==3.12
 ruamel.yaml==0.15.25
 six==1.10.0
--e git+https://github.com/hildenost/uintahtools@96492bdcaa1faf5333ea3f9fec7a49c8373c0098#egg=uintahtools
+-e git+https://github.com/hildenost/uintahtools@570f00db2780ff74fb6e2c79a0c56b9f362d06e2#egg=uintahtools
 wrapt==1.10.10
