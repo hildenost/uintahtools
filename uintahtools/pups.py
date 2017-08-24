@@ -34,13 +34,12 @@ def header(var):
         return FIXEDCOLS + [var]
     return FIXEDCOLS + HEADERS[var]
 
-def normalize(var, varmin=0, varmax=1, flip=False):#varmax=1, varmin=0, flip=False):
+def normalize(var, varmax=1, varmin=0, flip=False):
     """Normalize var to the range [0, 1].
     
     The range can be flipped. Resulting values can lie outside the range.
 
     """
-    print("Variable",var, "with settings", varmin, varmax, flip)
     return (varmax - var)/(varmax-varmin) if flip else (var-varmin)/(varmax-varmin)
 
 def cmd_make(var, uda, timestep=None):
@@ -84,7 +83,7 @@ def extracted(variable, uda, timestep):
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
     def table_read(variable, uda, timestep):
-        """Wraparound function."""
+        """Wrapper around pd.read_table for readability."""
         return pd.read_table(extracted(variable, uda, timestep),
                         header=None,
                         names=header(variable),
@@ -112,6 +111,12 @@ def dataframe_create(x, y, uda, timesteps, selected):
         df[col] = df[col].map(lambda x: normalize(x, **settings[col]))
     return df
 
+def variablelist():
+    """Return a list of tracked variables."""
+    result = re.findall(
+
+    )
+    print(result)
 
 def udaplot(x, y, uda):
     """Main function.
