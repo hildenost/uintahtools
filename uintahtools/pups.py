@@ -8,14 +8,18 @@ a dat-file.
 import os
 import re
 import subprocess
+from functools import partial
 from io import StringIO
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
+from uintahtools.terzaghi.terzaghi import terzaghi
 
 # Creating global variable PUDA
 yaml = YAML()
@@ -27,7 +31,7 @@ def header(var):
     fixedcols = ["time", "patch", "matl", "partId"]
     headers = {
         "p.x": ["x", "y", "z"],
-        "p.porepressure": ["pw"],
+        "p.porepressure": ["p.porepressure"],
     }
     if var not in headers:
         print("Sorry, the variable {var} is not implemented yet. No headers assigned for {var}".format(var=var))
@@ -83,7 +87,7 @@ def extracted(variable, uda, timestep):
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
     def table_read(variable, uda, timestep):
-        """Wraparound function."""
+        """Wrapping pd.read_table for readability."""
         return pd.read_table(extracted(variable, uda, timestep),
                         header=None,
                         names=header(variable),
@@ -92,7 +96,7 @@ def dataframe_assemble(variable, timesteps, uda):
     dfs = (table_read(variable, uda, timestep) for timestep in timesteps)
     return pd.concat(dfs)
 
-def dataframe_create(x, y, uda, timesteps, selected):
+def dataframe_create(x, y, uda, timesteps):
     """Create the final dataframe.
 
     Extracting the variables from the given timesteps, concatenating and merging dataframes
@@ -100,16 +104,23 @@ def dataframe_create(x, y, uda, timesteps, selected):
 
     """
     settings = {
-        "y": {'flip': True},
-        "pw": {'varmax': -1e4},
+        "y": {'flip': False},
+        x: {'varmax': -1e4},
     }
 
     dfs = [dataframe_assemble(var, timesteps, uda) for var in (x,y)]
-    df = pd.merge(*dfs).filter(selected).drop_duplicates(selected)
-    
-    for col in selected:
-        df[col] = df[col].map(lambda x: normalize(x, **settings[col]))
+    df = pd.merge(*dfs).filter([x, "y", "time"]).drop_duplicates([x, "y", "time"])
+    for col in (x, "y"):
+        df[col] = df[col].map(lambda t: normalize(t, **settings[col]))
     return df
+
+def plot_analytical(func, ax, timeseries, samples=40, maxj=15):
+    """Compute and plot analytical solution."""
+    add_to_plot = partial(ax.plot, color="red", linestyle="solid", linewidth=0.2)
+    for timefactor in timeseries:
+        zs = [z/samples for z in range(samples+1)]
+        pores = [func(timefactor, z, maxj) for z in zs]
+        add_to_plot(pores, zs)
 
 def udaplot(x, y, uda):
     """Main function.
@@ -134,8 +145,14 @@ def udaplot(x, y, uda):
         times=timeseries,
         timedict=timesteps_parse(cmd_run([PUDA, "-timesteps", uda]))
         )
-
-    selected = ['y', 'pw']
-    df = dataframe_create(x, y, uda, timesteps, selected)
     
-    print(df)
+    df = dataframe_create(x, y, uda, timesteps)
+
+    fig, ax = plt.subplots()
+    plot_analytical(terzaghi, ax, timeseries)
+
+    # Plotting the dataframe
+    norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
+    df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8)
+
+    plt.show()

@@ -1,5 +1,7 @@
 """Compute the analytical Terzaghi 1D consolidation solution."""
 
+import numpy as np
+
 def expterm(Tv, j):
     """Computing the exponential factor of the series."""
     return np.exp(-(2*j-1)**2*np.pi**2/4*Tv)
