@@ -24,15 +24,15 @@ PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 
 def header(var):
     """Create column headers based on extracted variable."""
-    FIXEDCOLS = ["time", "patch", "matl", "partId"]
-    HEADERS = {
+    fixedcols = ["time", "patch", "matl", "partId"]
+    headers = {
         "p.x": ["x", "y", "z"],
         "p.porepressure": ["pw"],
     }
-    if var not in HEADERS:
+    if var not in headers:
         print("Sorry, the variable {var} is not implemented yet. No headers assigned for {var}".format(var=var))
-        return FIXEDCOLS + [var]
-    return FIXEDCOLS + HEADERS[var]
+        return fixedcols + [var]
+    return fixedcols + headers[var]
 
 def normalize(var, varmax=1, varmin=0, flip=False):
     """Normalize var to the range [0, 1].
@@ -83,7 +83,7 @@ def extracted(variable, uda, timestep):
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
     def table_read(variable, uda, timestep):
-        """Wrapper around pd.read_table for readability."""
+        """Wraparound function."""
         return pd.read_table(extracted(variable, uda, timestep),
                         header=None,
                         names=header(variable),
@@ -110,13 +110,6 @@ def dataframe_create(x, y, uda, timesteps, selected):
     for col in selected:
         df[col] = df[col].map(lambda x: normalize(x, **settings[col]))
     return df
-
-def variablelist():
-    """Return a list of tracked variables."""
-    result = re.findall(
-
-    )
-    print(result)
 
 def udaplot(x, y, uda):
     """Main function.
