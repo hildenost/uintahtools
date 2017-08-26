@@ -82,6 +82,7 @@ def extracted(variable, uda, timestep):
 
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
+
     def table_read(variable, uda, timestep):
         """Wrapper around pd.read_table for readability."""
         return pd.read_table(extracted(variable, uda, timestep),
@@ -111,12 +112,14 @@ def dataframe_create(x, y, uda, timesteps, selected):
         df[col] = df[col].map(lambda x: normalize(x, **settings[col]))
     return df
 
-def variablelist():
+def variablelist(uda):
     """Return a list of tracked variables."""
     result = re.findall(
-
+        "(?P<varname>[pg]\..+): (?:Particle|NC)Variable<(?P<vartype>.*)>",
+        cmd_run([PUDA, "-listvariables", uda]),
+        re.MULTILINE
     )
-    print(result)
+    return dict(result)
 
 def udaplot(x, y, uda):
     """Main function.

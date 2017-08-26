@@ -104,3 +104,28 @@ def test_dataframe_make_shape(udas, basics):
     rows = 240*len(timesteps)
     columns = len(header(var))
     assert df.shape == (rows, columns)
+
+# Testing the variablelist
+def test_variableslist(udas):
+    __, uda = udas
+    vardict = {"p.x": "Point",
+            "p.color": "double",
+            "p.temperature": "double",
+            "p.velocity": "Vector",
+            "g.velocity": "Vector",
+            "p.particleID": "long64",
+            "p.stress": "Matrix3",
+            "p.externalforce": "Vector",
+            "g.internalforce": "Vector",
+            "g.externalforce": "Vector",
+            "g.mass": "double",
+            "p.deformationMeasure": "Matrix3",
+            "g.acceleration": "Vector",
+            "p.porepressure": "double",
+            "p.porepressure+": "double",
+            "g.internalfluidforce": "Vector",
+            "g.internaldragforce": "Vector",
+            "p.fluidvelocity": "Vector",
+            "g.fluidvelocity": "Vector",
+            "g.fluidacceleration": "Vector"}
+    assert variablelist(uda) == vardict
