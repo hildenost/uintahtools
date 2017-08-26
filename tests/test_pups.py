@@ -6,10 +6,10 @@ from uintahtools.pups import *
 
 # Tests for normalize function
 def test_normalize_1wrt5():
-    assert normalize(1, 5) == 0.2
+    assert normalize(1, varmax=5) == 0.2
 
 def test_normalize_1wrt5_flip():
-    assert normalize(1, 5, flip=True) == 0.8
+    assert normalize(1, varmax=5, flip=True) == 0.8
 
 def test_normalize_1wrt5_varmin__2_varmax_2():
     assert normalize(1, varmax=2, varmin=-2) == 0.75
