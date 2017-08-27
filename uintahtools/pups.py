@@ -21,6 +21,7 @@ from uintahtools import CONFIG
 yaml = YAML()
 load = yaml.load(Path(CONFIG))
 PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
+PARTEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "partextract"])
 
 def header(var):
     """Create column headers based on extracted variable."""
@@ -79,6 +80,29 @@ def timesteps_get(times, timedict):
 def extracted(variable, uda, timestep):
     """Extract the variable and wrap it in a stream."""
     return StringIO(cmd_run(cmd_make(variable, uda, timestep)))
+
+def get_particleposes(uda):
+    """Return a datafram of particleID x y z where duplicates of y is dropped."""
+    cmd = [PARTEXTRACT, "-partvar", "p.x", "-timestep", "0", uda]
+    output = cmd_run(cmd)
+    result = pd.read_table(StringIO(output),
+        header=None,
+        names=header("p.x"),
+        skiprows=2,
+        sep="\s+")
+    print(result)
+    return dict()
+
+def get_particleID(y, uda):
+    """Return particle ID based on y-variable.
+    
+    In future, one migth add the option to provide a point
+    in Cartesian coordinates and return the closest particle ID.
+
+    """
+    pass
+
+
 
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
@@ -154,8 +178,16 @@ def udaplot(x, y, uda):
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.
     # Time on x-axis, porepressure on y.
-    ys = timesteps_get(ysamples, df["y"])
-    dfs = [dataframe_assemble(var, ys, uda) for var in (x, y)]
-    df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
+    # ys = timesteps_get(ysamples, df["y"])
+    # dfs = [dataframe_assemble(var, ys, uda) for var in (x, y)]
+    # print(dfs)
+    # df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
 
-    print(df)
+    # PARTEXTRACT -partvar p.porepressure -partid PARTID uda
+    get_particleposes(uda)
+    # That's how it should be done.
+    # So need a function to retrieve the partid of particles at specified
+    # depth. I cannot make sense of lineextract
+    # Success!!
+    # LINEEXTRACT -v p.porepressure -istart 3 0 0 -iend 3 40 0 -uda uda
+    # print(df)
