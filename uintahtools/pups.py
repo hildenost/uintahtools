@@ -73,7 +73,7 @@ def timesteps_parse(output):
 
 def timesteps_get(times, timedict):
     """For a given list of times, return the index of the best-fitting timestep."""
-    idx = np.searchsorted(sorted(timedict.values()), times)
+    idx = np.searchsorted(timedict, times)
     return [str(i) for i in idx] if isinstance(times, list) else [str(idx)]
 
 def extracted(variable, uda, timestep):
@@ -106,14 +106,14 @@ def dataframe_create(x, y, uda, timesteps, selected):
     }
 
     dfs = [dataframe_assemble(var, timesteps, uda) for var in (x,y)]
-    df = pd.merge(*dfs).filter(selected).drop_duplicates(selected)
+    df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
     
     for col in selected:
         df[col] = df[col].map(lambda x: normalize(x, **settings[col]))
     return df
 
 def variablelist(uda):
-    """Return a list of tracked variables."""
+    """Return a dict of tracked variables and their types."""
     result = re.findall(
         "(?P<varname>[pg]\..+): (?:Particle|NC)Variable<(?P<vartype>.*)>",
         cmd_run([PUDA, "-listvariables", uda]),
@@ -139,13 +139,23 @@ def udaplot(x, y, uda):
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
 
     timeseries = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
+    ysamples = [0, 0.5, 1]
 
     timesteps = timesteps_get(
         times=timeseries,
-        timedict=timesteps_parse(cmd_run([PUDA, "-timesteps", uda]))
+        timedict=sorted(timesteps_parse(
+            cmd_run([PUDA, "-timesteps", uda])).values())
         )
 
     selected = ['y', 'pw']
     df = dataframe_create(x, y, uda, timesteps, selected)
     
+
+    # New dataframe for selected depths.
+    # Collects depth, porepressure and time.
+    # Time on x-axis, porepressure on y.
+    ys = timesteps_get(ysamples, df["y"])
+    dfs = [dataframe_assemble(var, ys, uda) for var in (x, y)]
+    df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
+
     print(df)

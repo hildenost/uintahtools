@@ -19,6 +19,7 @@ class Suite:
     def __init__(self, folder):
         self.files = self.find_files(folder)
         self.UINTAHPATH = self.get_uintahpath()
+        self.logfiles = []
     
     def get_uintahpath(self):
         yaml = YAML()
@@ -31,15 +32,21 @@ class Suite:
     def logfile(self, ups):
         """Return a file handle to a log file corresponding to the supplied ups file."""
         # logfilename is name of ups-file with extension "ups" swapped with "log"
-        logname = re.sub(r'\.ups$', ".log", os.path.basename(ups))
-        return open(os.path.join(os.path.dirname(ups),logname), "w")
+        self.logfiles.append(re.sub(r'\.ups$', ".log", os.path.basename(ups)))
+        return open(os.path.join(os.path.dirname(ups), self.logfiles[-1]), "w")
+
+    def timestep_current(self):
+        """Return the timestep at which the simulation is currently at."""
+        pass
 
     def run(self):
         """Run all the files in directory, directing stdout to a specified logfile."""
-        testsuite = {upsfile: self.logfile(upsfile) for upsfile in self.files}
+
+        # TODO: Make sure the log file "deletes itself". No reason to save all output...
+        self.testsuite = {upsfile: self.logfile(upsfile) for upsfile in self.files}
 
         processes = [subprocess.Popen([self.UINTAHPATH, inputfile], stdout=logfile, stderr=logfile)
-                        for inputfile, logfile in testsuite.items()]
+                        for inputfile, logfile in self.testsuite.items()]
         
         print()
         print("Pid   Input file")
