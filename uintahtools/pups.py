@@ -22,6 +22,7 @@ yaml = YAML()
 load = yaml.load(Path(CONFIG))
 PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 PARTEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "partextract"])
+LINEEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "lineextract"])
 
 def header(var):
     """Create column headers based on extracted variable."""
@@ -89,9 +90,22 @@ def get_particleposes(uda):
         header=None,
         names=header("p.x"),
         skiprows=2,
+        sep="\s+").drop_duplicates("y").filter(["partId", "y"])
+    return result
+
+def lineextract(uda):
+    x = "0.05"
+    z = "0"
+    y = ["0", "1"]
+    cmd = [LINEEXTRACT, "-v", "p.porepressure", "-startPt",
+            x, y[0], z, "-endPt", x, y[1], z, "-uda", uda]
+    output = cmd_run(cmd)
+    result = pd.read_table(StringIO(output),
+        header=None,
+        names=header("p.porepressure"),
+        skiprows=4,
         sep="\s+")
     print(result)
-    return dict()
 
 def get_particleID(y, uda):
     """Return particle ID based on y-variable.
@@ -184,10 +198,15 @@ def udaplot(x, y, uda):
     # df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
 
     # PARTEXTRACT -partvar p.porepressure -partid PARTID uda
-    get_particleposes(uda)
+    partids = get_particleposes(uda)
+    print(partids)
+    idx = np.searchsorted(partids["y"], ysamples)
+    idx[-1] -= 1
+    print([(i, p) for i, p in zip(partids["y"], partids["partId"])])
     # That's how it should be done.
     # So need a function to retrieve the partid of particles at specified
     # depth. I cannot make sense of lineextract
     # Success!!
     # LINEEXTRACT -v p.porepressure -istart 3 0 0 -iend 3 40 0 -uda uda
+    # lineextract(uda)
     # print(df)
