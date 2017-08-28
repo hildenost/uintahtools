@@ -25,6 +25,8 @@ from uintahtools.terzaghi.terzaghi import terzaghi
 yaml = YAML()
 load = yaml.load(Path(CONFIG))
 PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
+PARTEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "partextract"])
+LINEEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "lineextract"])
 
 def header(var):
     """Create column headers based on extracted variable."""
@@ -77,7 +79,7 @@ def timesteps_parse(output):
 
 def timesteps_get(times, timedict):
     """For a given list of times, return the index of the best-fitting timestep."""
-    idx = np.searchsorted(sorted(timedict.values()), times)
+    idx = np.searchsorted(timedict, times)
     return [str(i) for i in idx] if isinstance(times, list) else [str(idx)]
 
 def extracted(variable, uda, timestep):
@@ -90,8 +92,45 @@ def extracted(variable, uda, timestep):
         return None
     return StringIO(process)
 
+def get_particleposes(uda):
+    """Return a datafram of particleID x y z where duplicates of y is dropped."""
+    cmd = [PARTEXTRACT, "-partvar", "p.x", "-timestep", "0", uda]
+    output = cmd_run(cmd)
+    result = pd.read_table(StringIO(output),
+        header=None,
+        names=header("p.x"),
+        skiprows=2,
+        sep="\s+").drop_duplicates("y").filter(["partId", "y"])
+    return result
+
+def lineextract(uda):
+    x = "0.05"
+    z = "0"
+    y = ["0", "1"]
+    cmd = [LINEEXTRACT, "-v", "p.porepressure", "-startPt",
+            x, y[0], z, "-endPt", x, y[1], z, "-uda", uda]
+    output = cmd_run(cmd)
+    result = pd.read_table(StringIO(output),
+        header=None,
+        names=header("p.porepressure"),
+        skiprows=4,
+        sep="\s+")
+    print(result)
+
+def get_particleID(y, uda):
+    """Return particle ID based on y-variable.
+    
+    In future, one migth add the option to provide a point
+    in Cartesian coordinates and return the closest particle ID.
+
+    """
+    pass
+
+
+
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
+
     def table_read(variable, uda, timestep):
         """Wrapping pd.read_table for readability."""
         result = extracted(variable, uda, timestep)
@@ -116,6 +155,7 @@ def dataframe_create(x, y, uda, timesteps):
     }
 
     dfs = [dataframe_assemble(var, timesteps, uda) for var in (x,y)]
+<<<<<<< HEAD
     df = pd.merge(*dfs).filter([x, "y", "time"]).drop_duplicates([x, "y", "time"])
     for col in (x, "y"):
         df[col] = df[col].map(lambda t: normalize(t, **settings[col]))
@@ -128,6 +168,22 @@ def plot_analytical(func, ax, timeseries, samples=40, maxj=15):
         zs = [z/samples for z in range(samples+1)]
         pores = [func(timefactor, z, maxj) for z in zs]
         add_to_plot(pores, zs)
+=======
+    df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
+    
+    for col in selected:
+        df[col] = df[col].map(lambda x: normalize(x, **settings[col]))
+    return df
+
+def variablelist(uda):
+    """Return a dict of tracked variables and their types."""
+    result = re.findall(
+        "(?P<varname>[pg]\..+): (?:Particle|NC)Variable<(?P<vartype>.*)>",
+        cmd_run([PUDA, "-listvariables", uda]),
+        re.MULTILINE
+    )
+    return dict(result)
+>>>>>>> origin/master
 
 def udaplot(x, y, uda):
     """Module pups main plotting function.
@@ -149,10 +205,12 @@ def udaplot(x, y, uda):
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
 
     timeseries = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
+    ysamples = [0, 0.5, 1]
 
     timesteps = timesteps_get(
         times=timeseries,
-        timedict=timesteps_parse(cmd_run([PUDA, "-timesteps", uda]))
+        timedict=sorted(timesteps_parse(
+            cmd_run([PUDA, "-timesteps", uda])).values())
         )
     
     df = dataframe_create(x, y, uda, timesteps)
@@ -165,6 +223,31 @@ def udaplot(x, y, uda):
     norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
     df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8)
     
+<<<<<<< HEAD
     df.to_clipboard(excel=True)
 
     plt.show()
+=======
+
+    # New dataframe for selected depths.
+    # Collects depth, porepressure and time.
+    # Time on x-axis, porepressure on y.
+    # ys = timesteps_get(ysamples, df["y"])
+    # dfs = [dataframe_assemble(var, ys, uda) for var in (x, y)]
+    # print(dfs)
+    # df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
+
+    # PARTEXTRACT -partvar p.porepressure -partid PARTID uda
+    partids = get_particleposes(uda)
+    print(partids)
+    idx = np.searchsorted(partids["y"], ysamples)
+    idx[-1] -= 1
+    print([(i, p) for i, p in zip(partids["y"], partids["partId"])])
+    # That's how it should be done.
+    # So need a function to retrieve the partid of particles at specified
+    # depth. I cannot make sense of lineextract
+    # Success!!
+    # LINEEXTRACT -v p.porepressure -istart 3 0 0 -iend 3 40 0 -uda uda
+    # lineextract(uda)
+    # print(df)
+>>>>>>> origin/master

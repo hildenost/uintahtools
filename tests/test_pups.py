@@ -6,10 +6,10 @@ from uintahtools.pups import *
 
 # Tests for normalize function
 def test_normalize_1wrt5():
-    assert normalize(1, 5) == 0.2
+    assert normalize(1, varmax=5) == 0.2
 
 def test_normalize_1wrt5_flip():
-    assert normalize(1, 5, flip=True) == 0.8
+    assert normalize(1, varmax=5, flip=True) == 0.8
 
 def test_normalize_1wrt5_varmin__2_varmax_2():
     assert normalize(1, varmax=2, varmin=-2) == 0.75
@@ -104,3 +104,28 @@ def test_dataframe_make_shape(udas, basics):
     rows = 240*len(timesteps)
     columns = len(header(var))
     assert df.shape == (rows, columns)
+
+# Testing the variablelist
+def test_variableslist(udas):
+    __, uda = udas
+    vardict = {"p.x": "Point",
+            "p.color": "double",
+            "p.temperature": "double",
+            "p.velocity": "Vector",
+            "g.velocity": "Vector",
+            "p.particleID": "long64",
+            "p.stress": "Matrix3",
+            "p.externalforce": "Vector",
+            "g.internalforce": "Vector",
+            "g.externalforce": "Vector",
+            "g.mass": "double",
+            "p.deformationMeasure": "Matrix3",
+            "g.acceleration": "Vector",
+            "p.porepressure": "double",
+            "p.porepressure+": "double",
+            "g.internalfluidforce": "Vector",
+            "g.internaldragforce": "Vector",
+            "p.fluidvelocity": "Vector",
+            "g.fluidvelocity": "Vector",
+            "g.fluidacceleration": "Vector"}
+    assert variablelist(uda) == vardict

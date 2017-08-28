@@ -1,5 +1,14 @@
 {
   "tests/test_pups.py::test_dataframe_make": true,
+<<<<<<< HEAD
+=======
+  "tests/test_pups.py::test_get_timestep": true,
+  "tests/test_pups.py::test_get_timestep_negative_time_in_list": true,
+  "tests/test_pups.py::test_get_timestep_out_of_bounds": true,
+  "tests/test_pups.py::test_get_timestep_time_between_steps": true,
+  "tests/test_pups.py::test_get_timestep_times": true,
+  "tests/test_runups.py::test_logfile": true,
+>>>>>>> origin/master
   "tests/test_upsplot.py::TestNormalize::()::test_normalize_1wrt5": true,
   "tests/test_upsplot.py::TestNormalize::()::test_normalize_1wrt5_flip": true,
   "tests/test_upsplot.py::TestNormalize::()::test_normalize_1wrt5_varmin__2_varmax_2": true,

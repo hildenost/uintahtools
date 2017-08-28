@@ -8,7 +8,7 @@
    <SimulationComponent type="mpm" />
 
    <Time>
-       <maxTime>1</maxTime>
+       <maxTime>2</maxTime>
        <initTime>0.0</initTime>
        <delt_min>1e-7</delt_min>
        <delt_max>1e-4</delt_max>
@@ -98,7 +98,7 @@
              <load> 0 </load>
            </time_point>
            <time_point>
-             <time> 0.01 </time>
+             <time> 0.001 </time>
              <load> -1e4 </load>
            </time_point>
            <time_point>
