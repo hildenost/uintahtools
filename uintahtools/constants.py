@@ -1,5 +1,5 @@
 """Constants."""
-CONFIG = "config.yaml"
+CONFIG = "/home/hilde/Koding/uintahtools/config.yaml"
 CONFIGSTR = """\
 # Configuration file for package uintahtools
 

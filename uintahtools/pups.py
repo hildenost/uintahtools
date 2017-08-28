@@ -93,15 +93,32 @@ def extracted(variable, uda, timestep):
     return StringIO(process)
 
 def get_particleposes(uda):
-    """Return a datafram of particleID x y z where duplicates of y is dropped."""
+    """Return a datafram of particleID y where duplicates of y is dropped."""
     cmd = [PARTEXTRACT, "-partvar", "p.x", "-timestep", "0", uda]
     output = cmd_run(cmd)
     result = pd.read_table(StringIO(output),
         header=None,
         names=header("p.x"),
+        index_col="partId",
         skiprows=2,
-        sep="\s+").drop_duplicates("y").filter(["partId", "y"])
+        sep="\s+").drop_duplicates("y").filter(["y"])
     return result
+
+def get_particleIDs(uda):
+    """Return a sample of 3 evenly spread particle IDs.
+    
+    In future, one migth add the option to provide a point
+    in Cartesian coordinates and return the closest particle ID. And also
+    provide any number of samples.
+
+    """
+    pdf = get_particleposes(uda)
+    n = len(pdf)
+    sampleidxs = [0, n//2, n-1]
+    ndecimals = 6
+    return {pid: round(y, ndecimals)
+                for i, (pid, y) in enumerate(pdf.itertuples())
+                if i in sampleidxs}
 
 def lineextract(uda):
     x = "0.05"
@@ -116,17 +133,6 @@ def lineextract(uda):
         skiprows=4,
         sep="\s+")
     print(result)
-
-def get_particleID(y, uda):
-    """Return particle ID based on y-variable.
-    
-    In future, one migth add the option to provide a point
-    in Cartesian coordinates and return the closest particle ID.
-
-    """
-    pass
-
-
 
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
@@ -155,7 +161,6 @@ def dataframe_create(x, y, uda, timesteps):
     }
 
     dfs = [dataframe_assemble(var, timesteps, uda) for var in (x,y)]
-<<<<<<< HEAD
     df = pd.merge(*dfs).filter([x, "y", "time"]).drop_duplicates([x, "y", "time"])
     for col in (x, "y"):
         df[col] = df[col].map(lambda t: normalize(t, **settings[col]))
@@ -168,12 +173,6 @@ def plot_analytical(func, ax, timeseries, samples=40, maxj=15):
         zs = [z/samples for z in range(samples+1)]
         pores = [func(timefactor, z, maxj) for z in zs]
         add_to_plot(pores, zs)
-=======
-    df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
-    
-    for col in selected:
-        df[col] = df[col].map(lambda x: normalize(x, **settings[col]))
-    return df
 
 def variablelist(uda):
     """Return a dict of tracked variables and their types."""
@@ -183,7 +182,6 @@ def variablelist(uda):
         re.MULTILINE
     )
     return dict(result)
->>>>>>> origin/master
 
 def udaplot(x, y, uda):
     """Module pups main plotting function.
@@ -205,7 +203,6 @@ def udaplot(x, y, uda):
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
 
     timeseries = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
-    ysamples = [0, 0.5, 1]
 
     timesteps = timesteps_get(
         times=timeseries,
@@ -216,18 +213,16 @@ def udaplot(x, y, uda):
     df = dataframe_create(x, y, uda, timesteps)
 
     # Plotting the reference solution
-    fig, ax = plt.subplots()
-    plot_analytical(terzaghi, ax, timeseries)
+    # fig, ax = plt.subplots()
+    # plot_analytical(terzaghi, ax, timeseries)
 
-    # Plotting the dataframe
-    norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
-    df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8)
+    # # Plotting the dataframe
+    # norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
+    # df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8)
     
-<<<<<<< HEAD
-    df.to_clipboard(excel=True)
+    # # df.to_clipboard(excel=True)
 
-    plt.show()
-=======
+    # plt.show()
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.
@@ -238,11 +233,10 @@ def udaplot(x, y, uda):
     # df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
 
     # PARTEXTRACT -partvar p.porepressure -partid PARTID uda
-    partids = get_particleposes(uda)
+    partids = get_particleIDs(uda)
     print(partids)
-    idx = np.searchsorted(partids["y"], ysamples)
-    idx[-1] -= 1
-    print([(i, p) for i, p in zip(partids["y"], partids["partId"])])
+    # Fixed for now
+    # Hent alltid ut min og max
     # That's how it should be done.
     # So need a function to retrieve the partid of particles at specified
     # depth. I cannot make sense of lineextract
@@ -250,4 +244,3 @@ def udaplot(x, y, uda):
     # LINEEXTRACT -v p.porepressure -istart 3 0 0 -iend 3 40 0 -uda uda
     # lineextract(uda)
     # print(df)
->>>>>>> origin/master

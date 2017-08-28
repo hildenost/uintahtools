@@ -105,6 +105,13 @@ def test_dataframe_make_shape(udas, basics):
     columns = len(header(var))
     assert df.shape == (rows, columns)
 
+# Test get particle IDs
+def test_particle_ids_samples(udas):
+    __, uda = udas
+    assert get_particleIDs(uda) == {0: 0.0125,
+                        85899345920: 0.5125,
+                        167503724544: 0.9875}
+
 # Testing the variablelist
 def test_variableslist(udas):
     __, uda = udas
