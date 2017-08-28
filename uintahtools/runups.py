@@ -3,6 +3,13 @@
 Usually used in conjunction with the upschanger module to generate a
 simulation test suite.
 
+Wishlist:
+    [ ] Header: Print out the time the simulation started
+    [ ] Ability to view `tail -f <name>.log while running
+    [ ] Ability to kill the pid of choice
+    [ ] Ability to get <time> out of <total_time> to see how far the
+            simulation has run
+
 """
 import os
 import re

@@ -65,7 +65,7 @@ def cmd_make(var, uda, timestep=None):
 
 def cmd_run(cmd):
     """Shortcut for the long and winding subprocess call output decoder."""
-    return subprocess.run(cmd, stdout=subprocess.PIPE).stdout.decode("utf-8")
+    return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout.decode("utf-8")
 
 def timesteps_parse(output):
     """Parse timesteps, return a dict of {timestep: simtime}."""
@@ -82,17 +82,24 @@ def timesteps_get(times, timedict):
 
 def extracted(variable, uda, timestep):
     """Extract the variable and wrap it in a stream."""
-    return StringIO(cmd_run(cmd_make(variable, uda, timestep)))
+    try:
+        process = cmd_run(cmd_make(variable, uda, timestep))
+    except subprocess.CalledProcessError:
+        print("The timestep {timestep} was not found in {uda}"
+              " and was therefore ignored.".format(timestep=timestep, uda=uda))
+        return None
+    return StringIO(process)
 
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
     def table_read(variable, uda, timestep):
         """Wrapping pd.read_table for readability."""
-        return pd.read_table(extracted(variable, uda, timestep),
+        result = extracted(variable, uda, timestep)
+        return pd.read_table(result,
                         header=None,
                         names=header(variable),
                         skiprows=2,
-                        sep="\s+")
+                        sep="\s+") if result is not None else pd.DataFrame(columns=header(variable))
     dfs = (table_read(variable, uda, timestep) for timestep in timesteps)
     return pd.concat(dfs)
 
@@ -123,18 +130,20 @@ def plot_analytical(func, ax, timeseries, samples=40, maxj=15):
         add_to_plot(pores, zs)
 
 def udaplot(x, y, uda):
-    """Main function.
+    """Module pups main plotting function.
 
-    Steps:
-      x 1. Extract XVAR from uda <-|
-      x 2. Extract YVAR from uda <-|-Both should pipe the output to the read_table function
-      x 3. Store XVAR and YVAR in their respective dataframes
-      x 4. Set column names
-      x 5. Merge dataframes
-      x 6. Drop duplicates (removes the need for line select)
-      x 7. Column select: time, XVAR, YVAR
-      x 8. Normalize variables
-        9. REFACTOR AND TEST
+    From a given set of timepoints, the provided variables are extracted
+    from the provided uda folder and plotted along with the reference
+    results.
+
+    Not implemented yet:
+        [ ] Reference plot could be from external file
+        [ ] Reference plot could be extracted from another uda file
+        [ ] Listing the variables this uda has tracked
+        [ ] If no variables provided, interactively choose
+            [ ] Tab completion
+        [ ] Plot labels
+            [ ] Labels on the time series
 
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
@@ -148,11 +157,14 @@ def udaplot(x, y, uda):
     
     df = dataframe_create(x, y, uda, timesteps)
 
+    # Plotting the reference solution
     fig, ax = plt.subplots()
     plot_analytical(terzaghi, ax, timeseries)
 
     # Plotting the dataframe
     norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
     df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8)
+    
+    df.to_clipboard(excel=True)
 
     plt.show()
