@@ -92,8 +92,21 @@ def extracted(variable, uda, timestep):
         return None
     return StringIO(process)
 
+def get_particle_outputs(uda, var, partid):
+    """Create dataframe of time vs porepressure at given depth."""
+    cmd = [PARTEXTRACT, "-partvar", var, "-partid", partid, uda]
+    output = cmd_run(cmd)
+    result = pd.read_table(StringIO(output),
+        header=None,
+        names=header(var),
+        index_col="time",
+        skiprows=2,
+        sep="\s+",
+        usecols=["time", "partId", var])
+    return result
+
 def get_particleposes(uda):
-    """Return a datafram of particleID y where duplicates of y is dropped."""
+    """Return a dataframe of particleID y where duplicates of y is dropped."""
     cmd = [PARTEXTRACT, "-partvar", "p.x", "-timestep", "0", uda]
     output = cmd_run(cmd)
     result = pd.read_table(StringIO(output),
@@ -116,7 +129,7 @@ def get_particleIDs(uda):
     n = len(pdf)
     sampleidxs = [0, n//2, n-1]
     ndecimals = 6
-    return {pid: round(y, ndecimals)
+    return {str(pid): round(y, ndecimals)
                 for i, (pid, y) in enumerate(pdf.itertuples())
                 if i in sampleidxs}
 
@@ -166,13 +179,27 @@ def dataframe_create(x, y, uda, timesteps):
         df[col] = df[col].map(lambda t: normalize(t, **settings[col]))
     return df
 
-def plot_analytical(func, ax, timeseries, samples=40, maxj=15):
-    """Compute and plot analytical solution."""
-    add_to_plot = partial(ax.plot, color="red", linestyle="solid", linewidth=0.2)
-    for timefactor in timeseries:
+def plot_analytical(func, ax, timeseries=[], zs=[], samples=40, maxj=15, time=False):
+    """Compute and plot analytical solution.
+    
+    Two options:
+        1.  porepressure vs depth (z)
+        2.  porepressure vs time (t)
+
+    """
+    add_to_plot = partial(ax.plot, color="red", linestyle="solid", linewidth=0.4)
+    if not zs:
         zs = [z/samples for z in range(samples+1)]
-        pores = [func(timefactor, z, maxj) for z in zs]
-        add_to_plot(pores, zs)
+    if not timeseries:
+        timeseries = np.logspace(-5, 1, num=samples)
+    if time:
+        for z in zs:
+            pores = [func(t, z, maxj) for t in timeseries]
+            add_to_plot(timeseries, pores)
+    else:
+        for timefactor in timeseries:
+            pores = [func(timefactor, z, maxj) for z in zs]
+            add_to_plot(pores, zs)
 
 def variablelist(uda):
     """Return a dict of tracked variables and their types."""
@@ -235,6 +262,19 @@ def udaplot(x, y, uda):
     # PARTEXTRACT -partvar p.porepressure -partid PARTID uda
     partids = get_particleIDs(uda)
     print(partids)
+
+    dfs = [get_particle_outputs(uda, x, partid) for partid in partids]
+
+    fig, ax = plt.subplots()
+    plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
+    dfs[1][x] = dfs[1][x].map(lambda t: normalize(t, varmax=-1e4))
+    dfs[1].plot(use_index=True, y=x,
+            ax=ax,
+            linewidth=0.2,
+            grid=True,
+            c="gray",
+            logx=True)
+    plt.show()
     # Fixed for now
     # Hent alltid ut min og max
     # That's how it should be done.
