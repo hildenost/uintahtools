@@ -20,6 +20,7 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 from uintahtools import CONFIG
+from uintahtools import UPS
 
 class Prompt(cmd.Cmd):
     """Command processor to survey the simulations."""
@@ -43,28 +44,34 @@ class Prompt(cmd.Cmd):
 
     def do_prod(self, pid):
         """prod [pid]\tget process progress as time out of total time"""
-        print("Prodding the process")
-        print(pid)
-        lines = []
-        block_counter = 1
-        n = 2
-        print(self.processes[pid][1])
-        with open(self.processes[pid][1], "r") as f:
-            while True:
-                try:
-                    f.seek(block_counter, os.SEEK_END)
-                except IOError:
-                    f.seek(0)
-                    print(f.readlines())
-                    break
-                
-                lines = f.readlines()
+        print("Checking out the process")
+        print(pid, self.processes[pid][1].name, self.processes[pid][0].args[1])
+        
+        # Get max time
+        inputfile = self.processes[pid][0].args[1]
+        ups = UPS(inputfile)
+        max_time = float(ups.search_tag("maxTime").text)
 
-                if len(lines) > n:
-                    print(lines[-n:])
-                    break
 
-                block_counter -= 1
+        tail = subprocess.run(["tail", self.processes[pid][1].name],
+                stdout=subprocess.PIPE,
+                universal_newlines=True)
+        result = re.findall(
+            "Time=(?P<time>(0|[1-9]\d*)(\.\d+)?([eE][+\-]?\d*)?)",
+            tail.stdout,
+            re.MULTILINE
+        )
+        current_time = float(result[-1][0])
+        
+        percentage_done = current_time/max_time*100
+
+        print("At time {current_time} of {max_time},"
+            " simulation is {percentage:f}% done.".format(
+                current_time=current_time,
+                max_time=max_time,
+                percentage=percentage_done
+            ))
+
     
     def do_kill(self, pid):
         """kill [pid]|all\tkill process by id or all processes"""
@@ -98,6 +105,8 @@ class Prompt(cmd.Cmd):
         return True
 
     def postloop(self):
+        print("Quitting...")
+        self.do_kill("all")
         print()
 
 
@@ -108,6 +117,7 @@ class Suite:
         self.files = self.find_files(folder)
         self.UINTAHPATH = self.get_uintahpath()
         self.logfiles = []
+        self.testsuite = {}
     
     def get_uintahpath(self):
         yaml = YAML()

@@ -52,9 +52,9 @@ class Material:
 class UPS:
     """Class containing the parsed UPS XML tree and related methods."""
     
-    def __init__(self, ups, settings):
+    def __init__(self, ups, settings=None):
         self.tree = self.parse_ups(ups)
-        self.settings = yaml.load(settings)
+        self.settings = yaml.load(settings) if settings else None
         self.name = self.create_name()
 
     def parse_ups(self, ups):
