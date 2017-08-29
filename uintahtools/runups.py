@@ -48,43 +48,47 @@ class Prompt(cmd.Cmd):
 
     def do_prod(self, pid):
         """prod [pid]\tget process progress as time out of total time"""
-        print("Checking out the process")
-        print(pid, self.processes[pid][1].name, self.processes[pid][0].args[1])
-        
-        # Get max time
-        inputfile = self.processes[pid][0].args[1]
-        ups = UPS(inputfile)
-        max_time = float(ups.search_tag("maxTime").text)
+        if pid.isdigit() and int(pid) in self.pids:
+            print("Inspecting process number {pid}".format(pid=pid))
+            
+            # Get max time
+            inputfile = self.processes[pid][0].args[1]
+            ups = UPS(inputfile)
+            max_time = float(ups.search_tag("maxTime").text)
 
-        tail = subprocess.run(["tail", self.processes[pid][1].name],
-                stdout=subprocess.PIPE,
-                universal_newlines=True)
-        result = re.findall(
-            "Time=(?P<time>(0|[1-9]\d*)(\.\d+)?([eE][+\-]?\d*)?)",
-            tail.stdout,
-            re.MULTILINE
-        )
-        current_time = float(result[-1][0])
-        
-        percentage_done = current_time/max_time*100
+            tail = subprocess.run(["tail", self.processes[pid][1].name],
+                    stdout=subprocess.PIPE,
+                    universal_newlines=True)
+            result = re.findall(
+                "Time=(?P<time>(0|[1-9]\d*)(\.\d+)?([eE][+\-]?\d*)?)",
+                tail.stdout,
+                re.MULTILINE
+            )
+            current_time = float(result[-1][0])
+            
+            percentage_done = round(current_time/max_time*100,1)
 
-        print("At time {current_time} of {max_time},"
-            " simulation is {percentage:f}% done.".format(
-                current_time=current_time,
-                max_time=max_time,
-                percentage=percentage_done
-            ))
-        
-        count = current_time
-        total = max_time
-        bar_len = 60
-        filled_len = int(round(bar_len * count / float(total)))
+            def tcolour(number):
+                """Colour the number."""
+                return Fore.GREEN + str(number) + Fore.RESET
 
-        percents = round(100.0 * count / float(total), 1)
-        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+            print("At time {current_time} of {max_time},"
+                " simulation is {percentage}% done.".format(
+                    current_time=tcolour(current_time),
+                    max_time=tcolour(max_time),
+                    percentage=tcolour(percentage_done)
+                ))
+            
+            count = current_time
+            total = max_time
+            bar_len = 60
+            filled_len = int(round(bar_len * count / float(total)))
 
-        sys.stdout.write('[{bar}] {percents}%\n'.format(bar=bar, percents=percents))
-        sys.stdout.flush()
+            percents = round(100.0 * count / float(total), 1)
+            bar = '=' * filled_len + '.' * (bar_len - filled_len)
+
+            sys.stdout.write(Fore.LIGHTCYAN_EX +'[{bar}] \033[1m{percents}%\033[0m\n'.format(bar=bar, percents=percents))
+            sys.stdout.flush()
     
     def do_kill(self, pid):
         """kill [pid]|all\tkill process by id or all processes"""
@@ -160,7 +164,7 @@ class Suite:
         
         print()
         print("Pid   Input file")
-        [print(p.pid, p.args[1]) for p, log in processes]
+        [print("\033[1m"+str(p.pid)+"\033[0m", p.args[1]) for p, log in processes]
         print()
         print("Waiting for completion... Cancel all processes with ctrl+c")
 
