@@ -11,13 +11,13 @@
        <maxTime>2</maxTime>
        <initTime>0.0</initTime>
        <delt_min>1e-7</delt_min>
-       <delt_max>1e-4</delt_max>
+       <delt_max>1e-3</delt_max>
        <max_Timesteps>300000000</max_Timesteps>
        <timestep_multiplier>0.4</timestep_multiplier>
    </Time>
    <DataArchiver>
        <filebase>camclay.uda</filebase>
-       <outputInterval>1.0e-3</outputInterval>
+       <outputInterval>1.0e-4</outputInterval>
        <save label = "p.particleID"/>
        <save label = "p.x"/>
        <save label = "p.volume"/>
@@ -28,14 +28,7 @@
       <save label = "p.externalforce"/>
        <save label = "p.deformationMeasure" />
         <save label="p.porepressure" /> 
-<!--       <save label = "g.temperature"/> -->
-<!--       <save label = "g.temperaturenobc"/> -->
        <save label = "g.mass"/>
-       <!--<save label = "g.stressFS"/>-->
-
-<!--      <save label = "p.plasticstrain" />
-      <save label = "p.deltaplasticstrain" />
-     <save label = "p.pcstress" />-->
    </DataArchiver>
 
     <MPM>
@@ -98,7 +91,7 @@
              <load> 0 </load>
            </time_point>
            <time_point>
-             <time> 0.001 </time>
+             <time> 0.01 </time>
              <load> -1e4 </load>
            </time_point>
            <time_point>

@@ -240,16 +240,16 @@ def udaplot(x, y, uda):
     df = dataframe_create(x, y, uda, timesteps)
 
     # Plotting the reference solution
-    # fig, ax = plt.subplots()
-    # plot_analytical(terzaghi, ax, timeseries)
+    fig, ax = plt.subplots()
+    plot_analytical(terzaghi, ax, timeseries)
 
-    # # Plotting the dataframe
-    # norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
-    # df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8)
+    # Plotting the dataframe
+    norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
+    df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8)
     
-    # # df.to_clipboard(excel=True)
+    # df.to_clipboard(excel=True)
 
-    # plt.show()
+    plt.show()
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.
@@ -266,13 +266,14 @@ def udaplot(x, y, uda):
     dfs = [get_particle_outputs(uda, x, partid) for partid in partids]
 
     fig, ax = plt.subplots()
-    plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
+    # plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
     dfs[1][x] = dfs[1][x].map(lambda t: normalize(t, varmax=-1e4))
     dfs[1].plot(use_index=True, y=x,
             ax=ax,
             linewidth=0.2,
             grid=True,
             c="gray",
+            alpha=0.5,
             logx=True)
     plt.show()
     # Fixed for now

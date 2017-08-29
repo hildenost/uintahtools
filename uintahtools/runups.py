@@ -11,6 +11,7 @@ Wishlist:
             simulation has run
 
 """
+import cmd
 import os
 import re
 import sys
@@ -19,6 +20,86 @@ from pathlib import Path
 
 from ruamel.yaml import YAML
 from uintahtools import CONFIG
+
+class Prompt(cmd.Cmd):
+    """Command processor to survey the simulations."""
+
+    prompt = "uintahtools $ "
+
+    ruler = '-'
+
+    def __init__(self, processes):
+        self.pids = set(p.pid for p, log in processes)
+        self.processes = {str(p.pid): (p, log) for p, log in processes}
+        super().__init__()
+
+    def cmdloop(self, intro=None):
+        print()
+        print("Use of prompt:")
+        print("\tkill [pid]|all\tkill process by id or all processes")
+        print("\tprod [pid]\tget process progress as time out of total time")
+        print()
+        return cmd.Cmd.cmdloop(self, intro)
+
+    def do_prod(self, pid):
+        """prod [pid]\tget process progress as time out of total time"""
+        print("Prodding the process")
+        print(pid)
+        lines = []
+        block_counter = 1
+        n = 2
+        print(self.processes[pid][1])
+        with open(self.processes[pid][1], "r") as f:
+            while True:
+                try:
+                    f.seek(block_counter, os.SEEK_END)
+                except IOError:
+                    f.seek(0)
+                    print(f.readlines())
+                    break
+                
+                lines = f.readlines()
+
+                if len(lines) > n:
+                    print(lines[-n:])
+                    break
+
+                block_counter -= 1
+    
+    def do_kill(self, pid):
+        """kill [pid]|all\tkill process by id or all processes"""
+        # TODO: make use of Popen.kill() in stead
+        if pid == "all":
+            print("Killing all simulations in {pids}".format(pids=self.pids))
+            for id in self.pids:
+                print("Killing process number {id}".format(id=id))
+                subprocess.run(["kill", str(id)])
+            self.pids.clear()
+            print("All processes killed.")
+        elif pid.isdigit() and int(pid) in self.pids:
+            print("Killing simulation with process id {pid}...".format(pid=pid))
+            subprocess.run(["kill", pid])
+            self.pids.remove(int(pid))
+            print("Process killed.")
+        else:
+            print("{pid} not valid.".format(pid=pid, pids=self.pids))
+        if self.pids:
+            print("Running processes: {pids}".format(pids=self.pids))
+        else:
+            print("No processes left. Quitting prompt.")
+            return True
+    
+    def do_EOF(self, line):
+        """Make it possible to use ctrl+d to exit."""
+        return True
+
+    def do_exit(self, line):
+        """exit\texit prompt"""
+        return True
+
+    def postloop(self):
+        print()
+
 
 class Suite:
     """Class to keep track of the entire simulation suite."""
@@ -52,13 +133,20 @@ class Suite:
         # TODO: Make sure the log file "deletes itself". No reason to save all output...
         self.testsuite = {upsfile: self.logfile(upsfile) for upsfile in self.files}
 
-        processes = [subprocess.Popen([self.UINTAHPATH, inputfile], stdout=logfile, stderr=logfile)
-                        for inputfile, logfile in self.testsuite.items()]
+        processes = [(subprocess.Popen([self.UINTAHPATH, inputfile],
+                            stdout=logfile,
+                            stderr=subprocess.STDOUT,
+                            universal_newlines=True
+                            ), logfile) for inputfile, logfile in self.testsuite.items()]
         
-        print()
         print("Pid   Input file")
-        [print(p.pid, p.args[1]) for p in processes]
+        [print(p.pid, p.args[1]) for p, log in processes]
         print()
-        print("Waiting for completion... Run all in background with ctrl+c")
-        [p.wait() for p in processes]
+        print("Waiting for completion... Cancel all processes with ctrl+c")
+
+        Prompt(processes).cmdloop()
+        # while True:
+            # command = input("prompt> ")
+            # print(command)
+            # [p.wait() for p in processes]
         print("All simulations finished!")
