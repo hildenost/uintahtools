@@ -70,11 +70,11 @@ def generate(ups, yaml, run):
     
 @cli.command("run", short_help="run the simulation suite")
 @click.argument("folder")
-@click.option('-d', is_flag=True, help="use dbg executable in stead of opt")
-def folder_run(folder, d):
+# @click.option('-d', is_flag=True, help="use dbg executable in stead of opt")
+def folder_run(folder):#, d):
     """Run all Uintah input files residing in FOLDER."""
-    click.echo("Running all ups files in folder")
-    if d:
-        click.echo("Using the debug executable.")
+    click.echo("Running all ups files in folder {folder}".format(folder=folder))
+    # if d:
+        # click.echo("Using the debug executable.")
     suite = Suite(folder)
     suite.run()

@@ -18,14 +18,18 @@ import sys
 import subprocess
 from pathlib import Path
 
+import colorama
+from colorama import Fore
 from ruamel.yaml import YAML
 from uintahtools import CONFIG
 from uintahtools import UPS
 
+colorama.init(autoreset=True)
+
 class Prompt(cmd.Cmd):
     """Command processor to survey the simulations."""
 
-    prompt = "uintahtools $ "
+    prompt = Fore.LIGHTGREEN_EX + "uintahtools $ " + Fore.RESET
 
     ruler = '-'
 
@@ -52,7 +56,6 @@ class Prompt(cmd.Cmd):
         ups = UPS(inputfile)
         max_time = float(ups.search_tag("maxTime").text)
 
-
         tail = subprocess.run(["tail", self.processes[pid][1].name],
                 stdout=subprocess.PIPE,
                 universal_newlines=True)
@@ -71,7 +74,17 @@ class Prompt(cmd.Cmd):
                 max_time=max_time,
                 percentage=percentage_done
             ))
+        
+        count = current_time
+        total = max_time
+        bar_len = 60
+        filled_len = int(round(bar_len * count / float(total)))
 
+        percents = round(100.0 * count / float(total), 1)
+        bar = '=' * filled_len + '-' * (bar_len - filled_len)
+
+        sys.stdout.write('[{bar}] {percents}%\n'.format(bar=bar, percents=percents))
+        sys.stdout.flush()
     
     def do_kill(self, pid):
         """kill [pid]|all\tkill process by id or all processes"""
@@ -133,10 +146,6 @@ class Suite:
         self.logfiles.append(re.sub(r'\.ups$', ".log", os.path.basename(ups)))
         return open(os.path.join(os.path.dirname(ups), self.logfiles[-1]), "w")
 
-    def timestep_current(self):
-        """Return the timestep at which the simulation is currently at."""
-        pass
-
     def run(self):
         """Run all the files in directory, directing stdout to a specified logfile."""
 
@@ -149,14 +158,11 @@ class Suite:
                             universal_newlines=True
                             ), logfile) for inputfile, logfile in self.testsuite.items()]
         
+        print()
         print("Pid   Input file")
         [print(p.pid, p.args[1]) for p, log in processes]
         print()
         print("Waiting for completion... Cancel all processes with ctrl+c")
 
         Prompt(processes).cmdloop()
-        # while True:
-            # command = input("prompt> ")
-            # print(command)
-            # [p.wait() for p in processes]
         print("All simulations finished!")
