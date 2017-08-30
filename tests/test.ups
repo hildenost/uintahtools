@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Uintah_specification>
+
+   <Meta>
+      <title>1D for testing</title>
+   </Meta>
+
+   <SimulationComponent type="mpm" />
+
+   <Time>
+       <maxTime>1</maxTime>
+       <initTime>0.0</initTime>
+       <delt_min>1.0e-8</delt_min>
+       <delt_max>1.0e-5</delt_max>
+       <max_Timesteps>30000000</max_Timesteps>
+       <timestep_multiplier>0.4</timestep_multiplier>
+   </Time>
+   <DataArchiver>
+       <filebase>test.uda</filebase>
+       <outputInterval>1e-5</outputInterval>
+       <save label = "p.particleID"/>
+       <save label = "p.x"/>
+       <save label = "p.volume"/>
+       <save label = "p.stress"/>
+       <save label = "p.deformationMeasure" />
+       <save label = "p.porepressure" />
+   </DataArchiver>
+
+    <MPM>
+       <time_integrator>explicit</time_integrator>
+       <interpolator>linear</interpolator>
+       <artificial_damping_coeff>0.0</artificial_damping_coeff>
+      <use_load_curves>true</use_load_curves>
+      <axisymmetric>false</axisymmetric>
+          <coupled_flow_analysis>        true       </coupled_flow_analysis>
+    </MPM>
+
+    <PhysicalConstants>
+       <gravity>[0,0,0]</gravity>   
+    </PhysicalConstants>
+
+    <MaterialProperties>
+       <MPM>
+            <material>
+               <density>1600</density>
+               <water_density>1000</water_density>
+               <porosity>0.4</porosity>
+               <permeability>1e-3</permeability>
+              <constitutive_model type="UCNH">
+                <bulk_modulus> 3333333 </bulk_modulus>
+                <shear_modulus> 5000e3 </shear_modulus>
+              </constitutive_model>
+
+               <thermal_conductivity>1</thermal_conductivity> 
+               <specific_heat>1</specific_heat> 
+               <geom_object> 
+                   <box label="soil"> 
+                      <min>[0,0,0]</min> 
+                      <max>[0.1,1,0.1]</max> 
+                   </box> 
+                   <res>[1,1,1]</res> 
+                   <velocity>[0.0,0.0,0.0]</velocity> 
+                   <temperature>12</temperature> 
+               </geom_object> 
+            </material> 
+       </MPM>
+    </MaterialProperties>
+
+    <PhysicalBC>
+      <MPM>
+      <pressure>
+         <geom_object>
+           <box>
+             <min>           [0.0,0.99999,0.0]   </min>
+             <max>           [1.0,1.001,0.1]   </max>
+           </box>
+         </geom_object>
+         <load_curve>
+           <id>1</id>
+           <time_point>
+             <time> 0 </time>
+             <load> 0 </load>
+           </time_point>
+           <time_point>
+             <time> 0.001 </time>
+             <load> -1e4 </load>
+           </time_point>
+           <time_point>
+             <time> 10 </time>
+             <load> -1e4 </load>
+           </time_point>
+         </load_curve>
+       </pressure>
+      </MPM>
+    </PhysicalBC>
+
+    <Grid>
+            <BoundaryConditions>
+             <Face side = "x-">
+          <BCType id = "all" var = "symmetry" label = "Symmetric">
+          </BCType>
+       </Face>
+       <Face side = "x+">
+          <BCType id = "all" var = "symmetry" label = "Symmetric">
+          </BCType>
+       </Face>
+       <Face side = "y-">
+          <BCType id = "all" var = "symmetry" label = "Symmetric">
+          </BCType>
+       </Face>
+       <Face side = "y+">
+          <BCType id = "all" var = "symmetry" label = "Symmetric">
+          </BCType>
+       </Face>
+       <Face side = "z-">
+          <BCType id = "all" var = "symmetry" label = "Symmetric">
+          </BCType>
+       </Face>
+       <Face side = "z+">
+          <BCType id = "all" var = "symmetry" label = "Symmetric">
+          </BCType>
+       </Face>
+       </BoundaryConditions>
+       <Level>
+           <Box label="1">
+              <lower>[0, 0, 0]   </lower>
+              <upper>[0.1, 1.2, 0.1]</upper>
+              <extraCells>[0,0,0]      </extraCells>
+              <patches>[1,1,1]         </patches>
+              <resolution>[3,10,1]</resolution>
+           </Box>
+       </Level>
+
+    </Grid>
+
+</Uintah_specification>
+
