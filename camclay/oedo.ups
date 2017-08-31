@@ -34,7 +34,7 @@
     <MPM>
        <time_integrator>explicit</time_integrator>
        <interpolator>linear</interpolator>
-       <artificial_damping_coeff>0.0</artificial_damping_coeff>
+       <artificial_damping_coeff>10</artificial_damping_coeff>
       <use_load_curves>true</use_load_curves>
       <axisymmetric>false</axisymmetric>
           <coupled_flow_analysis>true</coupled_flow_analysis>
