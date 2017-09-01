@@ -5,15 +5,16 @@ simulation test suite.
 
 Wishlist:
     [ ] Header: Print out the time the simulation started
-    [ ] Ability to view `tail -f <name>.log while running
-    [ ] Ability to kill the pid of choice
-    [ ] Ability to get <time> out of <total_time> to see how far the
+    [x] Ability to view `tail -f <name>.log while running
+    [x] Ability to kill the pid of choice
+    [x] Ability to get <time> out of <total_time> to see how far the
             simulation has run
 
 """
 import cmd
 import os
 import re
+import shutil
 import sys
 import subprocess
 from pathlib import Path
@@ -148,7 +149,7 @@ class Suite:
         """Return a file handle to a log file corresponding to the supplied ups file."""
         # logfilename is name of ups-file with extension "ups" swapped with "log"
         self.logfiles.append(re.sub(r'\.ups$', ".log", os.path.basename(ups)))
-        return open(os.path.join(os.path.dirname(ups), self.logfiles[-1]), "w")
+        return os.path.join(os.path.dirname(ups), self.logfiles[-1])
 
     def run(self):
         """Run all the files in directory, directing stdout to a specified logfile."""
@@ -157,16 +158,38 @@ class Suite:
         self.testsuite = {upsfile: self.logfile(upsfile) for upsfile in self.files}
 
         processes = [(subprocess.Popen([self.UINTAHPATH, inputfile],
-                            stdout=logfile,
+                            stdout=open(logfile, "w"),
                             stderr=subprocess.STDOUT,
                             universal_newlines=True
                             ), logfile) for inputfile, logfile in self.testsuite.items()]
         
         print()
         print("Pid   Input file")
-        [print("\033[1m"+str(p.pid)+"\033[0m", p.args[1]) for p, log in processes]
+        [print("\033[1m"+str(p.pid)+"\033[0m", p.args[1]) for p, __ in processes]
         print()
         print("Waiting for completion... Cancel all processes with ctrl+c")
 
-        Prompt(processes).cmdloop()
+        # The threading is suitable here
+        # Prompt(processes).cmdloop()
+
+        # Trying to swap log files
+        # MAX_BYTES = 26214400 # 25MB
+        MAX_BYTES = 20000
+
+        while None in [p.poll() for p, __ in processes]:
+            print("Not all simulations are finished")
+            for log in (logfile for __, logfile in processes):
+                print(log, "has size", os.path.getsize(log), "in bytes")
+                size = os.path.getsize(log)
+                if size >= MAX_BYTES:
+                    print("Logfile too large.")
+                    shutil.copyfile(log, log+".1")
+                    break
+
+                    
+                    
+
         print("All simulations finished!")
+
+        # Clean up
+        [p.kill() for p, __ in processes]

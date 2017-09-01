@@ -245,7 +245,7 @@ def udaplot(x, y, uda):
 
     # Plotting the dataframe
     norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
-    df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8)
+    df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8, xlim=(0,1.2))
     
     # df.to_clipboard(excel=True)
 
@@ -274,7 +274,8 @@ def udaplot(x, y, uda):
             grid=True,
             c="gray",
             alpha=0.5,
-            logx=True)
+            # logx=True,
+            ylim=(0, 5))
     plt.show()
     # Fixed for now
     # Hent alltid ut min og max

@@ -8,7 +8,7 @@
    <SimulationComponent type="mpm" />
 
    <Time>
-       <maxTime>2</maxTime>
+       <maxTime>3</maxTime>
        <initTime>0.0</initTime>
        <delt_min>1e-7</delt_min>
        <delt_max>1e-3</delt_max>
@@ -16,8 +16,8 @@
        <timestep_multiplier>0.4</timestep_multiplier>
    </Time>
    <DataArchiver>
-       <filebase>camclay.uda</filebase>
-       <outputInterval>1.0e-4</outputInterval>
+       <filebase>camclay-wet.uda</filebase>
+       <outputInterval>1.0e-2</outputInterval>
        <save label = "p.particleID"/>
        <save label = "p.x"/>
        <save label = "p.volume"/>
@@ -34,7 +34,7 @@
     <MPM>
        <time_integrator>explicit</time_integrator>
        <interpolator>linear</interpolator>
-       <artificial_damping_coeff>10</artificial_damping_coeff>
+       <artificial_damping_coeff>0.0</artificial_damping_coeff>
       <use_load_curves>true</use_load_curves>
       <axisymmetric>false</axisymmetric>
           <coupled_flow_analysis>true</coupled_flow_analysis>
@@ -57,8 +57,8 @@
                    <kappa> 0.05</kappa>
                    <lambda> 0.3 </lambda>
                    <M> 1 </M>
-                   <p_ini> 10 </p_ini>
-                   <OCR>1</OCR>
+                   <p_ini> 10000 </p_ini>
+                   <OCR>4</OCR>
                </constitutive_model> 
                <thermal_conductivity>1</thermal_conductivity> 
                <specific_heat>1</specific_heat> 
@@ -91,7 +91,7 @@
              <load> 0 </load>
            </time_point>
            <time_point>
-             <time> 0.01 </time>
+             <time> 1 </time>
              <load> -1e4 </load>
            </time_point>
            <time_point>
