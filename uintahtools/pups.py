@@ -287,16 +287,36 @@ def udaplot(x, y, uda):
     dfs = [get_particle_outputs(uda, x, partid) for partid in partids]
 
     fig, ax = plt.subplots()
-    # plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
+    plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
     dfs[1][x] = dfs[1][x].map(lambda t: normalize(t, varmax=1e4))
     dfs[1].plot(use_index=True, y=x,
                 ax=ax,
-                linewidth=0.2,
+                linewidth=0.4,
                 grid=True,
-                c="gray",
-                alpha=0.5,
+                # c="gray",
+                # alpha=0.5,
                 # logx=True,
-                ylim=(0, 5))
+                ylim=(0, 1))
+    plt.show()
+    dfs[0][x] = dfs[1][x].map(lambda t: normalize(t, varmax=1e4))
+    dfs[0].plot(use_index=True, y=x,
+                ax=ax,
+                linewidth=0.4,
+                grid=True,
+                # c="gray",
+                # alpha=0.5,
+                # logx=True,
+                ylim=(0, 1))
+    plt.show()
+    dfs[2][x] = dfs[1][x].map(lambda t: normalize(t, varmax=1e4))
+    dfs[2].plot(use_index=True, y=x,
+                ax=ax,
+                linewidth=0.4,
+                grid=True,
+                # c="gray",
+                # alpha=0.5,
+                # logx=True,
+                ylim=(0, 1))
     plt.show()
     # Fixed for now
     # Hent alltid ut min og max
