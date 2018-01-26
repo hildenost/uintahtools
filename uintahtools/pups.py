@@ -139,7 +139,7 @@ def get_particleIDs(uda):
     """
     pdf = get_particleposes(uda)
     n = len(pdf)
-    sampleidxs = [0, n // 2, n - 1]
+    sampleidxs = [n // 2, n - 1]
     ndecimals = 6
     return {str(pid): round(y, ndecimals)
             for i, (pid, y) in enumerate(pdf.itertuples())
@@ -204,8 +204,8 @@ def plot_analytical(func, ax, timeseries=[], zs=[], samples=40, maxj=50, time=Fa
         2.  porepressure vs time (t)
 
     """
-    add_to_plot = partial(ax.plot, color="red",
-                          linestyle="solid", linewidth=0.4)
+    add_to_plot = partial(ax.plot,  color="gray", alpha=0.8,
+                          linestyle="solid", linewidth=2, zorder=1)
     if not zs:
         zs = [z / samples for z in range(samples + 1)]
     if not timeseries:
@@ -215,9 +215,15 @@ def plot_analytical(func, ax, timeseries=[], zs=[], samples=40, maxj=50, time=Fa
             pores = [func(t, z, maxj) for t in timeseries]
             add_to_plot(timeseries, pores)
     else:
+        legend_entry = False
         for timefactor in timeseries:
             pores = [func(timefactor, z, maxj) for z in zs]
-            add_to_plot(pores, zs)
+
+            if legend_entry:
+                add_to_plot(pores, zs)
+            else:
+                add_to_plot(pores, zs, label="analytical")
+                legend_entry = True
 
 
 def variablelist(uda):
@@ -228,6 +234,26 @@ def variablelist(uda):
         re.MULTILINE
     )
     return dict(result)
+
+
+def annotate(plt, timeseries, df):
+    """Annotate the isochrones."""
+    # Creating labels
+    pos = [(0.22, 0.15),
+           (0.27, 0.25),
+           (0.51, 0.33),
+           (0.655, 0.34),
+           (0.87, 0.35),
+           (0.87, 0.5),
+           (0.87, 0.6),
+           (0.87, 0.7),
+           (0.8, 0.85)
+           ]
+    for i, time in enumerate(reversed(timeseries)):
+        label = "$T = " + str(time) + "$"
+        plt.figtext(*pos[i], label, horizontalalignment="left")
+
+    return
 
 
 def udaplot(x, y, uda):
@@ -249,7 +275,7 @@ def udaplot(x, y, uda):
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
 
-    timeseries = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
+    timeseries = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
 
     timesteps = timesteps_get(
         times=timeseries,
@@ -259,18 +285,39 @@ def udaplot(x, y, uda):
 
     df = dataframe_create(x, y, uda, timesteps)
 
+    fig = plt.figure(figsize=(5, 3.8))
+    ax = fig.add_subplot(111)
+
     # Plotting the reference solution
-    fig, ax = plt.subplots()
     plot_analytical(terzaghi, ax, timeseries)
 
     # Plotting the dataframe
-    norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
-    df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm,
-                    cmap="Set3", alpha=0.8, xlim=(0, 1.2))
+    df.plot.scatter(x=x, y="y", ax=ax, color="none",
+                    edgecolor="black", zorder=2, label="MPM-FVM")
+
+    # Removing plot frame
+    for side in {'right', 'top'}:
+        ax.spines[side].set_visible(False)
+
+    ax.set_xbound(lower=0)
+    ax.set_ybound(lower=0, upper=1)
+
+    # Adding labels
+    xlabel = "Normalized pore pressure $p/p_0$"
+    ylabel = "Normalized depth $z/H$"
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    # Adding annotations
+    annotate(plt, timeseries, df)
+
+    # Adding legend
+    plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
 
     # df.to_clipboard(excel=True)
-
     plt.show()
+
+    # plt.savefig("terzaghicoarse.pdf", dpi=300)
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.
@@ -281,43 +328,24 @@ def udaplot(x, y, uda):
     # df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
 
     # PARTEXTRACT -partvar p.porepressure -partid PARTID uda
-    partids = get_particleIDs(uda)
-    print(partids)
+    # partids = get_particleIDs(uda)
+    # print(partids)
 
-    dfs = [get_particle_outputs(uda, x, partid) for partid in partids]
+    # dfs = [get_particle_outputs(uda, x, partid) for partid in partids]
 
-    fig, ax = plt.subplots()
-    plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
-    dfs[1][x] = dfs[1][x].map(lambda t: normalize(t, varmax=1e4))
-    dfs[1].plot(use_index=True, y=x,
-                ax=ax,
-                linewidth=0.4,
-                grid=True,
-                # c="gray",
-                # alpha=0.5,
-                # logx=True,
-                ylim=(0, 1))
-    plt.show()
-    dfs[0][x] = dfs[1][x].map(lambda t: normalize(t, varmax=1e4))
-    dfs[0].plot(use_index=True, y=x,
-                ax=ax,
-                linewidth=0.4,
-                grid=True,
-                # c="gray",
-                # alpha=0.5,
-                # logx=True,
-                ylim=(0, 1))
-    plt.show()
-    dfs[2][x] = dfs[1][x].map(lambda t: normalize(t, varmax=1e4))
-    dfs[2].plot(use_index=True, y=x,
-                ax=ax,
-                linewidth=0.4,
-                grid=True,
-                # c="gray",
-                # alpha=0.5,
-                # logx=True,
-                ylim=(0, 1))
-    plt.show()
+    # fig, ax = plt.subplots()
+    # plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
+    # for df in dfs:
+    #     df[x] = df[x].map(lambda t: normalize(t, varmax=1e4))
+    #     df.plot(use_index=True, y=x,
+    #             ax=ax,
+    #             linewidth=0.4,
+    #             grid=True,
+    #             # c="gray",
+    #             # alpha=0.5,
+    #             # logx=True,
+    #             ylim=(0, 1))
+    # plt.show()
     # Fixed for now
     # Hent alltid ut min og max
     # That's how it should be done.
