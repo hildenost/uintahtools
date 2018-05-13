@@ -85,7 +85,7 @@ def timesteps_parse(output):
     return {int(timestep): float(simtime) for timestep, simtime in result}
 
 
-def timesteps_get(times, timedict):
+def timesteps_get(timedict, times=None, frequency=None):
     """For a given list of times, return the index of the best-fitting timestep."""
     idx = np.searchsorted(timedict, times)
     return [str(i) for i in idx] if isinstance(times, list) else [str(idx)]
@@ -196,6 +196,23 @@ def dataframe_create(x, y, uda, timesteps):
     return df
 
 
+def pqplot(uda):
+    """Create a stress p-q-plot.
+
+    (If material model is Cam clay, the yield surface start and stop is also drawn.)
+
+    If pore pressures present, total p also plotted.
+    """
+
+    # Step 1: Get stresses from uda-file
+    stresses = extracted("p.stress", uda, None)
+
+    print("Did command run?")
+    print(stresses)
+
+    print(timesteps_parse(cmd_run([PUDA, "-timesteps", uda])))
+
+
 def plot_analytical(func, ax, timeseries=[], zs=[], samples=40, maxj=50, time=False):
     """Compute and plot analytical solution.
 
@@ -271,9 +288,19 @@ def udaplot(x, y, uda):
             [ ] Tab completion
         [ ] Plot labels
             [ ] Labels on the time series
+        [ ] Make p-q-p_w-plot
+            [ ] For given particles
+            [ ] For all particles
 
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
+
+    if (x, y) == ("p", "q"):
+        print("Creating a pqplot")
+
+        pqplot(uda)
+
+        exit()
 
     timeseries = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
 
@@ -317,7 +344,7 @@ def udaplot(x, y, uda):
     # df.to_clipboard(excel=True)
     plt.show()
 
-    # plt.savefig("terzaghicoarse.pdf", dpi=300)
+    # plt.savefig("terzaghi-dynamic.pdf", dpi=300)
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.
