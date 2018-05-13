@@ -28,6 +28,7 @@ PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 PARTEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "partextract"])
 LINEEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "lineextract"])
 
+
 def header(var):
     """Create column headers based on extracted variable."""
     fixedcols = ["time", "patch", "matl", "partId"]
@@ -36,9 +37,12 @@ def header(var):
         "p.porepressure": ["p.porepressure"],
     }
     if var not in headers:
-        print("Sorry, the variable {var} is not implemented yet. No headers assigned for {var}".format(var=var))
+        print(
+            "Sorry, the variable {var} is not implemented yet. No headers assigned for {var}".
+            format(var=var))
         return fixedcols + [var]
     return fixedcols + headers[var]
+
 
 def normalize(var, varmax=1, varmin=0, flip=False):
     """Normalize var to the range [0, 1].
@@ -46,7 +50,9 @@ def normalize(var, varmax=1, varmin=0, flip=False):
     The range can be flipped. Resulting values can lie outside the range.
 
     """
-    return (varmax - var)/(varmax-varmin) if flip else (var-varmin)/(varmax-varmin)
+    return (varmax - var) / (varmax - varmin) if flip else (var - varmin) / (
+        varmax - varmin)
+
 
 def cmd_make(var, uda, timestep=None):
     """Assemble the command line instruction to extract variable.
@@ -62,25 +68,33 @@ def cmd_make(var, uda, timestep=None):
     if timestep:
         if not isinstance(timestep, list):
             timestep = [timestep]
-        cmdargs.extend(["-timesteplow", str(min(timestep)), "-timestephigh", str(max(timestep))])
+        cmdargs.extend([
+            "-timesteplow",
+            str(min(timestep)), "-timestephigh",
+            str(max(timestep))
+        ])
     return [PUDA, *cmdargs, uda]
+
 
 def cmd_run(cmd):
     """Shortcut for the long and winding subprocess call output decoder."""
-    return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout.decode("utf-8")
+    return subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        check=True).stdout.decode("utf-8")
+
 
 def timesteps_parse(output):
     """Parse timesteps, return a dict of {timestep: simtime}."""
-    result = re.findall(
-        "(?P<timestep>\d+): (?P<simtime>.*)",
-        output,
-        re.MULTILINE)
+    result = re.findall("(?P<timestep>\d+): (?P<simtime>.*)", output,
+                        re.MULTILINE)
     return {int(timestep): float(simtime) for timestep, simtime in result}
 
-def timesteps_get(times, timedict):
+
+def timesteps_get(timedict, times=None, every=None):
     """For a given list of times, return the index of the best-fitting timestep."""
     idx = np.searchsorted(timedict, times)
     return [str(i) for i in idx] if isinstance(times, list) else [str(idx)]
+
 
 def extracted(variable, uda, timestep):
     """Extract the variable and wrap it in a stream."""
@@ -92,11 +106,13 @@ def extracted(variable, uda, timestep):
         return None
     return StringIO(process)
 
+
 def get_particle_outputs(uda, var, partid):
     """Create dataframe of time vs porepressure at given depth."""
     cmd = [PARTEXTRACT, "-partvar", var, "-partid", partid, uda]
     output = cmd_run(cmd)
-    result = pd.read_table(StringIO(output),
+    result = pd.read_table(
+        StringIO(output),
         header=None,
         names=header(var),
         index_col="time",
@@ -105,17 +121,20 @@ def get_particle_outputs(uda, var, partid):
         usecols=["time", "partId", var])
     return result
 
+
 def get_particleposes(uda):
     """Return a dataframe of particleID y where duplicates of y is dropped."""
     cmd = [PARTEXTRACT, "-partvar", "p.x", "-timestep", "0", uda]
     output = cmd_run(cmd)
-    result = pd.read_table(StringIO(output),
+    result = pd.read_table(
+        StringIO(output),
         header=None,
         names=header("p.x"),
         index_col="partId",
         skiprows=2,
         sep="\s+").drop_duplicates("y").filter(["y"])
     return result
+
 
 def get_particleIDs(uda):
     """Return a sample of 3 evenly spread particle IDs.
@@ -127,25 +146,31 @@ def get_particleIDs(uda):
     """
     pdf = get_particleposes(uda)
     n = len(pdf)
-    sampleidxs = [0, n//2, n-1]
+    sampleidxs = [0, n // 2, n - 1]
     ndecimals = 6
-    return {str(pid): round(y, ndecimals)
-                for i, (pid, y) in enumerate(pdf.itertuples())
-                if i in sampleidxs}
+    return {
+        str(pid): round(y, ndecimals)
+        for i, (pid, y) in enumerate(pdf.itertuples()) if i in sampleidxs
+    }
+
 
 def lineextract(uda):
     x = "0.05"
     z = "0"
     y = ["0", "1"]
-    cmd = [LINEEXTRACT, "-v", "p.porepressure", "-startPt",
-            x, y[0], z, "-endPt", x, y[1], z, "-uda", uda]
+    cmd = [
+        LINEEXTRACT, "-v", "p.porepressure", "-startPt", x, y[0], z, "-endPt",
+        x, y[1], z, "-uda", uda
+    ]
     output = cmd_run(cmd)
-    result = pd.read_table(StringIO(output),
+    result = pd.read_table(
+        StringIO(output),
         header=None,
         names=header("p.porepressure"),
         skiprows=4,
         sep="\s+")
     print(result)
+
 
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
@@ -153,13 +178,14 @@ def dataframe_assemble(variable, timesteps, uda):
     def table_read(variable, uda, timestep):
         """Wrapping pd.read_table for readability."""
         result = extracted(variable, uda, timestep)
-        return pd.read_table(result,
-                        header=None,
-                        names=header(variable),
-                        skiprows=2,
-                        sep="\s+") if result is not None else pd.DataFrame(columns=header(variable))
+        return pd.read_table(
+            result, header=None, names=header(variable), skiprows=2,
+            sep="\s+") if result is not None else pd.DataFrame(
+                columns=header(variable))
+
     dfs = (table_read(variable, uda, timestep) for timestep in timesteps)
     return pd.concat(dfs)
+
 
 def dataframe_create(x, y, uda, timesteps):
     """Create the final dataframe.
@@ -169,17 +195,34 @@ def dataframe_create(x, y, uda, timesteps):
 
     """
     settings = {
-        "y": {'flip': False},
-        x: {'varmax': -1e4},
+        "y": {
+            'flip': False
+        },
+        x: {
+            'varmax': -1e4
+        },
     }
 
-    dfs = [dataframe_assemble(var, timesteps, uda) for var in (x,y)]
-    df = pd.merge(*dfs).filter([x, "y", "time"]).drop_duplicates([x, "y", "time"])
+    dfs = [dataframe_assemble(var, timesteps, uda) for var in (x, y)]
+    df = pd.merge(*dfs).filter([x, "y",
+                                "time"]).drop_duplicates([x, "y", "time"])
     for col in (x, "y"):
         df[col] = df[col].map(lambda t: normalize(t, **settings[col]))
     return df
 
-def plot_analytical(func, ax, timeseries=[], zs=[], samples=40, maxj=15, time=False):
+
+def andregradsligning(a, b, c):
+    x = (-b + sqrt(b**2 - 4 * a * c)) / (2 * a)
+    return x
+
+
+def plot_analytical(func,
+                    ax,
+                    timeseries=[],
+                    zs=[],
+                    samples=40,
+                    maxj=15,
+                    time=False):
     """Compute and plot analytical solution.
     
     Two options:
@@ -187,9 +230,10 @@ def plot_analytical(func, ax, timeseries=[], zs=[], samples=40, maxj=15, time=Fa
         2.  porepressure vs time (t)
 
     """
-    add_to_plot = partial(ax.plot, color="red", linestyle="solid", linewidth=0.4)
+    add_to_plot = partial(
+        ax.plot, color="red", linestyle="solid", linewidth=0.4)
     if not zs:
-        zs = [z/samples for z in range(samples+1)]
+        zs = [z / samples for z in range(samples + 1)]
     if not timeseries:
         timeseries = np.logspace(-5, 1, num=samples)
     if time:
@@ -201,14 +245,14 @@ def plot_analytical(func, ax, timeseries=[], zs=[], samples=40, maxj=15, time=Fa
             pores = [func(timefactor, z, maxj) for z in zs]
             add_to_plot(pores, zs)
 
+
 def variablelist(uda):
     """Return a dict of tracked variables and their types."""
     result = re.findall(
         "(?P<varname>[pg]\..+): (?:Particle|NC)Variable<(?P<vartype>.*)>",
-        cmd_run([PUDA, "-listvariables", uda]),
-        re.MULTILINE
-    )
+        cmd_run([PUDA, "-listvariables", uda]), re.MULTILINE)
     return dict(result)
+
 
 def udaplot(x, y, uda):
     """Module pups main plotting function.
@@ -232,11 +276,10 @@ def udaplot(x, y, uda):
     timeseries = [0.02, 0.05, 0.1, 0.2, 0.5, 1]
 
     timesteps = timesteps_get(
-        times=timeseries,
-        timedict=sorted(timesteps_parse(
-            cmd_run([PUDA, "-timesteps", uda])).values())
-        )
-    
+        timedict=sorted(
+            timesteps_parse(cmd_run([PUDA, "-timesteps", uda])).values()),
+        times=timeseries)
+
     df = dataframe_create(x, y, uda, timesteps)
 
     # Plotting the reference solution
@@ -245,8 +288,16 @@ def udaplot(x, y, uda):
 
     # Plotting the dataframe
     norm = colors.BoundaryNorm(boundaries=timeseries, ncolors=len(timeseries))
-    df.plot.scatter(x=x, y="y", ax=ax, c="time", norm=norm, cmap="Set3", alpha=0.8, xlim=(0,1.2))
-    
+    df.plot.scatter(
+        x=x,
+        y="y",
+        ax=ax,
+        c="time",
+        norm=norm,
+        cmap="Set3",
+        alpha=0.8,
+        xlim=(0, 1.2))
+
     # df.to_clipboard(excel=True)
 
     plt.show()
@@ -268,14 +319,16 @@ def udaplot(x, y, uda):
     fig, ax = plt.subplots()
     # plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
     dfs[1][x] = dfs[1][x].map(lambda t: normalize(t, varmax=-1e4))
-    dfs[1].plot(use_index=True, y=x,
-            ax=ax,
-            linewidth=0.2,
-            grid=True,
-            c="gray",
-            alpha=0.5,
-            # logx=True,
-            ylim=(0, 5))
+    dfs[1].plot(
+        use_index=True,
+        y=x,
+        ax=ax,
+        linewidth=0.2,
+        grid=True,
+        c="gray",
+        alpha=0.5,
+        # logx=True,
+        ylim=(0, 5))
     plt.show()
     # Fixed for now
     # Hent alltid ut min og max
