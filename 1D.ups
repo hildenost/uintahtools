@@ -5,7 +5,7 @@
   </Meta>
   <SimulationComponent type="mpm"/>
   <Time>
-    <maxTime>1</maxTime>
+    <maxTime>3</maxTime>
     <initTime>0.0</initTime>
     <delt_min>1e-08</delt_min>
     <delt_max>1e-05</delt_max>
@@ -14,7 +14,7 @@
   </Time>
   <DataArchiver>
     <filebase>oedo.uda</filebase>
-    <outputInterval>5.0e-2</outputInterval>
+    <outputInterval>5.0e-3</outputInterval>
     <save label="p.particleID"/>
     <save label="p.x"/>
     <save label="p.volume"/>
@@ -23,30 +23,39 @@
     <save label="p.velocity"/>
     <save label="p.externalforce"/>
     <save label="p.deformationMeasure"/>
-    <save label="p.porepressure"/>
-    <!--       <save label = "g.temperature"/> -->
-    <!--       <save label = "g.temperaturenobc"/> -->
+    <!-- <save label="p.porepressure"/> -->
     <save label="g.mass"/>
-    <!--<save label = "g.stressFS"/>-->
-    <!--      <save label = "p.plasticstrain" />
-      <save label = "p.deltaplasticstrain" />
-     <save label = "p.pcstress" />-->
   </DataArchiver>
   <MPM>
     <time_integrator>explicit</time_integrator>
     <interpolator>linear</interpolator>
     <artificial_damping_coeff>0.0</artificial_damping_coeff>
-    <use_load_curves>true</use_load_curves>
+    <use_load_curves>false</use_load_curves>
     <axisymmetric>false</axisymmetric>
-    <coupled_flow_analysis>        true       </coupled_flow_analysis>
+    <coupled_flow_analysis>        false       </coupled_flow_analysis>
   </MPM>
   <PhysicalConstants>
-    <gravity>[0,0,0]</gravity>
+    <gravity>[0,-10,0]</gravity>
   </PhysicalConstants>
   <MaterialProperties>
     <MPM>
       <material>
-        <density>1600</density>
+        <density>50</density>
+        <constitutive_model type="rigid"></constitutive_model>
+        <thermal_conductivity>1</thermal_conductivity>
+        <specific_heat>1</specific_heat>
+        <geom_object>
+          <box label="top">
+            <min>[0, 1,0]</min>
+            <max>[1,1.2,0.1]</max>
+          </box>
+          <res>[1,1,1]</res>
+          <velocity>[0.0,0.0,0.0]</velocity>
+          <temperature>12</temperature>
+        </geom_object>
+      </material>
+      <material>
+        <density>2700</density>
         <water_density>1000</water_density>
         <permeability>1e-3</permeability>
         <porosity>0.4</porosity>
@@ -85,11 +94,11 @@
           </time_point>
           <time_point>
             <time> 0.001 </time>
-            <load> -1e5 </load>
+            <load> -1e4 </load>
           </time_point>
           <time_point>
             <time> 10 </time>
-            <load> -1e5 </load>
+            <load> -1e4 </load>
           </time_point>
         </load_curve>
       </pressure>
@@ -98,37 +107,31 @@
   <Grid>
     <BoundaryConditions>
       <Face side="x-">
-        <BCType id="all" var="symmetry" label="Symmetric">
-          </BCType>
+        <BCType id="all" var="symmetry" label="Symmetric"></BCType>
       </Face>
       <Face side="x+">
-        <BCType id="all" var="symmetry" label="Symmetric">
-          </BCType>
+        <BCType id="all" var="symmetry" label="Symmetric"></BCType>
       </Face>
       <Face side="y-">
-        <BCType id="all" var="symmetry" label="Symmetric">
-          </BCType>
+        <BCType id="all" var="symmetry" label="Symmetric"></BCType>
       </Face>
       <Face side="y+">
-        <BCType id="all" var="symmetry" label="Symmetric">
-          </BCType>
+        <BCType id="all" var="symmetry" label="Symmetric"></BCType>
       </Face>
       <Face side="z-">
-        <BCType id="all" var="symmetry" label="Symmetric">
-          </BCType>
+        <BCType id="all" var="symmetry" label="Symmetric"></BCType>
       </Face>
       <Face side="z+">
-        <BCType id="all" var="symmetry" label="Symmetric">
-          </BCType>
+        <BCType id="all" var="symmetry" label="Symmetric"></BCType>
       </Face>
     </BoundaryConditions>
     <Level>
       <Box label="1">
         <lower>[0, 0, 0]   </lower>
-        <upper>[1, 1.2, 0.02]</upper>
+        <upper>[1, 1.3, 0.02]</upper>
         <extraCells>[0,0,0]      </extraCells>
         <patches>[1,1,1]         </patches>
-        <resolution>[6, 48, 1]</resolution>
+        <resolution>[6, 52, 1]</resolution>
       </Box>
     </Level>
   </Grid>

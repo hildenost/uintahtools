@@ -2,31 +2,33 @@
 <Uintah_specification>
 
    <Meta>
-      <title>1D</title>
+      <title>1D axisymmetric</title>
    </Meta>
 
    <SimulationComponent type="mpm" />
 
    <Time>
-       <maxTime>300</maxTime>
+       <maxTime>1</maxTime>
        <initTime>0.0</initTime>
-       <delt_min>1e-5</delt_min>
-       <delt_max>1e-1</delt_max>
+       <delt_min>1e-8</delt_min>
+       <delt_max>1e-6</delt_max>
        <max_Timesteps>300000000</max_Timesteps>
        <timestep_multiplier>0.4</timestep_multiplier>
    </Time>
    <DataArchiver>
-       <filebase>camclay-wet-largesteps-300.uda</filebase>
-       <outputInterval>10</outputInterval>
+       <filebase>oedo-axi.uda</filebase>
+       <outputInterval>1e-3</outputInterval>
        <save label = "p.particleID"/>
        <save label = "p.x"/>
        <save label = "p.volume"/>
        <save label = "p.stress"/>
-       <save label = "p.pcstress"/>
        <save label = "p.temperature"/>
        <save label = "p.velocity" />
+       <save label = "p.fluidvelocity" />
 
       <save label = "p.externalforce"/>
+      <save label = "g.internalfluidforce"/>
+      <save label = "g.internaldragforce"/>
        <save label = "p.deformationMeasure" />
         <save label="p.porepressure" /> 
        <save label = "g.mass"/>
@@ -37,7 +39,7 @@
        <interpolator>linear</interpolator>
        <artificial_damping_coeff>0.0</artificial_damping_coeff>
       <use_load_curves>true</use_load_curves>
-      <axisymmetric>false</axisymmetric>
+      <axisymmetric>true</axisymmetric>
           <coupled_flow_analysis>true</coupled_flow_analysis>
     </MPM>
 
@@ -48,26 +50,23 @@
     <MaterialProperties>
        <MPM>
             <material>
-               <density>1700</density>
+               <density>2700</density>
                <water_density>1000</water_density>
-               <permeability>1e-4</permeability>
-               <porosity>0.7</porosity>
-               <constitutive_model type="camclay_imp">
-                   <nu> 0.3</nu>
-                   <e0> 2.36</e0>
-                   <kappa> 0.05</kappa>
-                   <lambda> 0.3 </lambda>
-                   <M> 1 </M>
-                   <p_ini> 5000</p_ini>
-                   <OCR>4</OCR>
-               </constitutive_model> 
+               <permeability>1e-3</permeability>
+               <porosity>0.4</porosity>
+               <initial_pore_pressure>-1e4</initial_pore_pressure>
+              <constitutive_model type="UCNH">
+                <bulk_modulus>3333333</bulk_modulus>
+                <shear_modulus>5000000.0</shear_modulus>
+              </constitutive_model>
                <thermal_conductivity>1</thermal_conductivity> 
                <specific_heat>1</specific_heat> 
                <geom_object> 
-                   <box label="soil"> 
-                      <min>[0,0,0]</min> 
-                      <max>[1,1,0.1]</max> 
-                   </box> 
+                   <cylinder label="soil"> 
+                      <bottom>[0,0,0]</bottom> 
+                      <top>[0,1,0]</top>
+                      <radius>1</radius>
+                   </cylinder> 
                    <res>[1,1,1]</res> 
                    <velocity>[0.0,0.0,0.0]</velocity> 
                    <temperature>12</temperature> 
@@ -80,11 +79,14 @@
       <MPM>
       <pressure>
          <geom_object>
-           <box>
-             <min>           [0.0,0.9999,0.0]   </min>
-             <max>           [1.0,1.01,0.1]   </max>
-           </box>
+            <cylinder label="soil"> 
+              <bottom>[0,0.9999,0]</bottom> 
+              <top>[0,1.01, 0.0]</top>
+              <radius>1</radius>
+              <axisymmetric_end>true</axisymmetric_end>
+           </cylinder>
          </geom_object>
+         <res>[1,1,1]</res>
          <load_curve>
            <id>1</id>
            <time_point>
@@ -92,7 +94,7 @@
              <load> 0 </load>
            </time_point>
            <time_point>
-             <time> 1 </time>
+             <time> 0.001 </time>
              <load> -1e4 </load>
            </time_point>
            <time_point>
@@ -134,7 +136,7 @@
        <Level>
            <Box label="1">
               <lower>[0, 0, 0]   </lower>
-              <upper>[1, 1.2, 0.1]</upper>
+              <upper>[1, 1.2, 0.02]</upper>
               <extraCells>[0,0,0]      </extraCells>
               <patches>[1,1,1]         </patches>
            <resolution>[6, 48, 1]</resolution>

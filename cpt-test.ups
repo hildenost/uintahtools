@@ -1,0 +1,270 @@
+<?xml version="1.0" encoding="iso-8859-1"?>
+<Uintah_specification>
+
+    <Meta>
+        <title>Advanced CPT Penetration</title>
+    </Meta>
+
+    <SimulationComponent type="mpm" />
+
+    <Time>
+        <maxTime>40</maxTime>
+        <initTime>0.0</initTime>
+        <delt_min>1.0e-5</delt_min>
+        <delt_max>1.0e-1</delt_max>
+        <max_Timesteps>3000000</max_Timesteps>
+        <timestep_multiplier>0.4</timestep_multiplier>
+    </Time>
+    
+    <DataArchiver>
+        <filebase>cpt-test.uda</filebase>
+        <outputInterval>5</outputInterval>
+        <save label = "p.particleID"/>
+        <save label = "p.x"/>
+        <save label = "p.volume"/>
+        <save label = "p.stress"/>
+        <save label = "p.porepressure"/>
+        <save label = "p.temperature"/>
+        <save label = "p.deformationMeasure" />
+        <save label = "p.velocity" />
+        <save label = "g.mass"/>
+        <save label = "g.stressFS"/>
+        <save label = "p.pcstress"/> 
+    </DataArchiver>
+
+    <MPM>
+        <time_integrator>explicit</time_integrator>
+        <interpolator>linear</interpolator>
+        <artificial_damping_coeff>0.0</artificial_damping_coeff>
+        <use_load_curves>false</use_load_curves>
+        <axisymmetric>true</axisymmetric> 
+        <coupled_flow_analysis>true</coupled_flow_analysis>
+    </MPM>
+
+    <PhysicalConstants>
+        <gravity>[0,0,0]</gravity>
+    </PhysicalConstants>
+
+    <MaterialProperties>
+        <MPM>
+            <material>
+                <density>1e9</density>
+                <constitutive_model type="rigid">
+                </constitutive_model>
+                <thermal_conductivity>1</thermal_conductivity>
+                <specific_heat>1</specific_heat>
+                <geom_object>
+                <!--		    <union>
+                <cone label="cone">
+                <top>[0,0,0]</top>
+                <bottom>[0,-0.87,0]</bottom>
+                <top_radius>0.5</top_radius>
+                <bottom_radius>0.0</bottom_radius>
+                </cone>		    
+                <cylinder>
+                <top>[0,15,0]</top>
+                <bottom>[0,0,0]</bottom>
+                <radius>0.5</radius>
+                </cylinder>
+                </union>-->
+                <!--Test med avansert spiss-->
+                <!-- sett sammen alle delene -->
+                    <union>
+                        <cylinder>
+                            <top>[0,15,0]</top>
+                            <bottom>[0,0.4,0]</bottom>
+                            <radius>0.5</radius>
+                        </cylinder>
+                        <intersection>
+                            <sphere>
+                                <origin>[-0.99,0.395,0]</origin>
+                                <radius>1.5</radius>
+                            </sphere>
+                            <cylinder>
+                                <top>[0,2,0]</top>
+                                <bottom>[0,-1,0]</bottom>
+                                <radius>0.5</radius>
+                            </cylinder>
+                        </intersection>
+                        <cone>
+                            <top>[0,-0.35,0]</top>
+                            <bottom>[0,-0.87,0]</bottom>
+                            <top_radius>0.3</top_radius>
+                            <bottom_radius>0.0</bottom_radius>
+                        </cone>
+                    </union>
+                    <res>[5,5,1]</res>
+                    <velocity>[0.0,-0.2,0.0]</velocity>
+                    <temperature>12</temperature>
+                </geom_object>
+            </material>
+
+            <!-- The inner soil cylinder, finer -->
+            <material>
+                <density>1600</density>
+                <water_density>1000</water_density>
+                <permeability>1e-4</permeability>
+               <porosity>0.7</porosity>
+                <constitutive_model type="camclay_imp">  
+                    <nu>0.3</nu>
+                    <e0>0.9</e0>
+                    <kappa>0.05</kappa>
+                    <lambda>0.3</lambda>
+                    <M>1</M>
+                    <p_ini>10</p_ini>
+                    <OCR>3</OCR>          
+                </constitutive_model> 
+                <thermal_conductivity>1</thermal_conductivity>
+                <specific_heat>0.5</specific_heat>
+                
+                <geom_object>
+                <!-- 		    <difference> -->
+                <!--                  <box label = "soil">
+                <min>[-10, -30, -10]</min>
+                <max>[10, 0, 10]</max>
+                </box>-->
+                    <cylinder label="soil">
+                        <top>[0,-0.9,0]</top>
+                        <bottom>[0,-30,0]</bottom>
+                        <radius>3</radius>
+                    </cylinder>
+                    <!--		    <cone label="inverted cone">
+                    <top>[0,0,0]</top>
+                    <bottom>[0,-0.87,0]</bottom>
+                    <top_radius>0.5</top_radius>
+                    <bottom_radius>0.0</bottom_radius>
+                    </cone>-->
+                    <!-- test med butt spiss -->
+                    <!--		    <sphere label="inverted cone">
+                    <origin>[0,0,0]</origin>
+                    <radius>0.5</radius>
+                    </sphere>-->
+                    <!--                  </difference> -->
+                    <!--<res>[2,2,2]</res>-->
+                    <res>[5,5,1]</res>
+                    <velocity>[0.0,0.0,0.0]</velocity>
+                    <temperature>12</temperature>
+                </geom_object>
+            </material>
+            
+            <!-- The surrounding soil, coarser -->
+            <material>
+                <density>1600</density>
+                <water_density>1000</water_density>
+                <permeability>1e-4</permeability>
+               <porosity>0.7</porosity>
+                <constitutive_model type="camclay_imp">  
+                    <nu>0.3</nu>
+                    <e0>0.9</e0>
+                    <kappa>0.05</kappa>
+                    <lambda>0.3</lambda>
+                    <M>1</M>
+                    <p_ini>10</p_ini>
+                    <OCR>3</OCR>          
+                </constitutive_model> 
+                
+<!--                                <constitutive_model type="UCNH"> 
+                The following correspond to E=1000, PR=0.3
+                <bulk_modulus>833.3</bulk_modulus>
+                <shear_modulus>384.6</shear_modulus> 
+                </constitutive_model>-->
+
+                <thermal_conductivity>1</thermal_conductivity>
+                <specific_heat>0.5</specific_heat>
+                
+                <geom_object>
+                    <difference>
+                        <cylinder label="outer soil">
+                            <top>[0,-0.9,0]</top>
+                            <bottom>[0,-30,0]</bottom>
+                            <radius>15</radius>
+                        </cylinder>
+                        <cylinder label="inner soil">
+                            <top>[0,-0.9,0]</top>
+                            <bottom>[0,-30,0]</bottom>
+                            <radius>3</radius>
+                        </cylinder>
+                    </difference>
+                    <res>[1,1,1]</res>
+                    <velocity>[0.0,0.0,0.0]</velocity>
+                    <temperature>12</temperature>
+                </geom_object>
+            </material>
+
+            <!--           <contact>
+            <type>specified</type>
+            <materials>[1,2]</materials>
+            <master_material>1</master_material>
+            <direction>[0,1,0]</direction>
+            <stop_time>99999.9</stop_time>
+            </contact>-->
+
+            <contact>
+                <type>specified</type>
+                <materials>[0,1]</materials>
+                <master_material>0</master_material>
+                <direction>[0,1,0]</direction>
+                <stop_time>40</stop_time>
+                <velocity_after_stop>[0,0,0]</velocity_after_stop>
+            </contact>
+
+            <contact>
+                <type>single_velocity</type>
+                <materials>[1,2]</materials>
+            </contact>
+
+<!--            <contact>
+                <type>friction</type>
+                <materials>[0,1]</materials>
+                <mu>0.2</mu>
+            </contact>-->
+            <!--           <thermal_contact></thermal_contact> -->
+        </MPM>
+    </MaterialProperties>
+
+
+    <Grid>
+        <BoundaryConditions>
+            <Face side = "x-">
+                <BCType id = "all" label = "Symmetric" var = "symmetry"> </BCType>
+            </Face>
+            <Face side = "x+">
+                <BCType id = "all" label = "Symmetric" var = "symmetry"> </BCType>
+            </Face>
+            <Face side = "y-">
+                <BCType id = "all" label = "Symmetric" var = "symmetry"> </BCType>
+            </Face>                  
+            <Face side = "y+">
+                <BCType id = "all" label = "Symmetric" var = "symmetry"> </BCType>
+            </Face>                  
+            <Face side = "z-">
+                <BCType id = "all" label = "Symmetric" var = "symmetry"> </BCType>
+            </Face>                  
+            <Face side = "z+">
+                <BCType id = "all" label = "Symmetric" var = "symmetry"> </BCType>
+            </Face>               
+        </BoundaryConditions>
+        <Level>
+            <Box label = "1">
+                <!--                <lower>[-10.0,-30,-10]</lower>
+                <upper>[10,10,10]</upper>
+                <resolution>[20,20,10]</resolution>-->
+                <!-- AXISYMMETRY -->
+                <lower>[0,-30,0]</lower>
+                <upper>[15,20,0.2]</upper>
+<!--                 <resolution>[180,140,1]</resolution> -->
+                <patches>[1,1,1]</patches>
+                <extraCells>[0,0,0]</extraCells>
+            </Box>
+            <spacing>[0.5,0.5,0.2]</spacing>
+<!--            <Box label="2">
+                <lower>[3,-30,0]</lower>
+                <upper>[15,20,0.2]</upper>
+                <resolution>[40,40,1]</resolution>
+                <patches>[1,1,1]</patches>
+                <extraCells>[0,0,0]</extraCells>
+            </Box>-->
+        </Level>
+    </Grid>
+    
+</Uintah_specification>
