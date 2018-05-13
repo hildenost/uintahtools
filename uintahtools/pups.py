@@ -352,6 +352,8 @@ def plotpq(uda):
     fig = plt.figure(figsize=FIGSIZE)
     ax = fig.add_subplot(111)
 
+    # TODO: Should reorganise dataframe so that columns are y-values, and rows are p,q
+
     # Plotting the dataframe
     # norm = colors.BoundaryNorm(
     # boundaries=timeseries, ncolors=len(timeseries))
@@ -361,7 +363,7 @@ def plotpq(uda):
         ax=ax,
         c="y",
         # norm=norm,
-        cmap="Set3",
+        cmap="autumn",
         alpha=0.8)
 
     # # Adding legend
