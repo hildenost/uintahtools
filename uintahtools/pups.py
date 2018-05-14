@@ -1,7 +1,7 @@
 """Simple plotting script for Plotting outputs from UPSes.
 
 Provide the x variable and the y variable to be plotted along with the uda-folder
-to make a simple 2D scatter plot with matplotlib. Output points are also stored in 
+to make a simple 2D scatter plot with matplotlib. Output points are also stored in
 a dat-file.
 
 """
@@ -331,7 +331,7 @@ def plotpq(uda):
     timesteps = timesteps_get(
         timedict=sorted(timesteps_parse(
             cmd_run([PUDA, "-timesteps", uda])).values()),
-        every=200
+        samples=10
     )
 
     # Step 2: Create dataframe of p.stress, particleId and time
@@ -347,24 +347,42 @@ def plotpq(uda):
     df['q'] = np.vectorize(equivalent_stress)(df['sigma11'], df['sigma22'], df['sigma33'],
                                               df['sigma12'], df['sigma13'], df['sigma23'])
 
-    # Step 4: Plot all p-q-paths in dataframe by particleId
+    # Step 4: Reorganising dataframe so that
+    #
+    #        |         y = 0.0        |      y = 1.0    |     |
+    #        +----+-------+-----+-----+----+------+-----+-----+
+    #  times | 0  |  0.01 | ... | 1.0 | 0  | 0.01 | ... | ... |
+    # -------+----+-------+-----+-----+----+------+-----+-----+
+    #    p   |    |       |     |     |    |      |     |     |
+    # -------+----+-------+-----+-----+----+------+-----+-----+
+    #    q   |    |       |     |     |    |      |     |     |
+    # -------+----+-------+-----+-----+----+------+-----+-----+
+    # TODO: Should reorganise dataframe so that columns are y-values, and rows are p,q
+    df = df[df.columns.drop(df.filter(regex='sigma').columns)]
+    print(df.head())
+    df["y"] = df[["y"]].apply(lambda x: x.astype('category'))
+    df = df.pivot_table(df, index=["time", "y"])
+    print(df)
+
+    # Step 5: Plot all p-q-paths in dataframe by particleId
     # Tidying up dataframe
     fig = plt.figure(figsize=FIGSIZE)
     ax = fig.add_subplot(111)
 
-    # TODO: Should reorganise dataframe so that columns are y-values, and rows are p,q
-
     # Plotting the dataframe
     # norm = colors.BoundaryNorm(
     # boundaries=timeseries, ncolors=len(timeseries))
-    df.plot.scatter(
+
+    df.plot.line(
         x="p",
         y="q",
-        ax=ax,
-        c="y",
-        # norm=norm,
-        cmap="autumn",
-        alpha=0.8)
+        ax=ax)  # ,
+    # c="y",
+    # norm=norm,
+    # cmap="autumn",
+    # alpha=0.8)
+
+    # df.plot(x="p", y="q", ax=ax)
 
     # # Adding legend
     # plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
