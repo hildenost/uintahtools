@@ -199,6 +199,15 @@ def lineextract(uda):
     print(result)
 
 
+def get_grid_cell_dimensions(uda):
+    """Collecting the grid cell dimensions as a tuple (x, y, z)"""
+    output = cmd_run([PUDA, "-gridstats", "-timesteplow",
+                      "0", "-timestephigh", "0", uda])
+    result = re.findall(
+        "^dx:\s+(?P<x>\d+[.]\d+e[+-]\d+)\s+(?P<y>\d+[.]\d+e[+-]\d+)\s+(?P<z>\d+[.]\d+e[+-]\d+)", output, re.MULTILINE)
+    return (float(x) for x in result[0])
+
+
 def dataframe_assemble(variable, timesteps, uda):
     """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
 
@@ -226,21 +235,44 @@ def dataframe_create(x, y, uda, timesteps):
             'flip': False
         },
         x: {
-            'varmax': -1e4
+            'varmax': 1e4
         },
     }
 
+    print(x, y)
+    normal = True
+    if x == "moment":
+        x = y
+        y = "p.x"
+        normal = False
+
     dfs = [dataframe_assemble(var, timesteps, uda) for var in (x, y)]
-    df = pd.merge(*dfs).filter([x, "y",
-                                "time"]).drop_duplicates([x, "y", "time"])
-    for col in (x, "y"):
-        df[col] = df[col].map(lambda t: normalize(t, **settings[col]))
+    df = pd.merge(*dfs)
+    if normal:
+        df = pd.merge(*dfs).filter([x, "y",
+                                    "time"]).drop_duplicates([x, "y", "time"])
+        for col in (x, "y"):
+            df[col] = df[col].map(lambda t: normalize(t, **settings[col]))
+    else:
+        pass
+
     return df
 
 
-def andregradsligning(a, b, c):
-    x = (-b + sqrt(b**2 - 4 * a * c)) / (2 * a)
-    return x
+def compute_pore_pressure_momentum(grouped, df):
+    timegroup = df.groupby("time")
+    pressure_momentum = {}
+    for time, data in timegroup:
+        pressure_momentum[time] = {}
+        data.set_index(["partId"], inplace=True)
+        for x, group in grouped:
+            group.set_index(["partId"], inplace=True)
+            pressure_momentum[time][x] = 0.0
+            for pId, row in group.iterrows():
+                porepressure = data.get_value(pId, "p.porepressure")
+                y = row["y"]
+                pressure_momentum[time][x] -= porepressure * y
+    return pressure_momentum
 
 
 def plot_analytical(func,
@@ -410,7 +442,46 @@ def udaplot(x, y, uda):
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
 
-    if (x, y) == ("p", "q"):
+    if x == "moment":
+        print("Plotting pore pressure moment along beam")
+
+        # Get initial values
+        # initial beam length
+        beamlength = 1.0
+        # initial beam section area
+        beamarea = 0.3 * 0.1
+
+        timeseries = [0.0, 0.02, 0.08, 0.1, 0.2, 1, 2, 4, 5]
+        timesteps = timesteps_get(
+            timedict=sorted(
+                timesteps_parse(cmd_run([PUDA, "-timesteps", uda])).values()),
+            times=timeseries)
+
+        df = dataframe_assemble("p.x", [timesteps[0]], uda)
+
+        # Change y-column to y-offset from centroid
+        y_mean = -0.15
+
+        def demean(y): return y - y_mean
+        df["y"] = df["y"].apply(demean)
+
+        # Group by x-position at start
+        grouped = df.groupby("x")
+
+        df = dataframe_create(x, y, uda, timesteps)
+        # print(df)
+
+        momentum = compute_pore_pressure_momentum(grouped, df)
+        df = pd.DataFrame(data=momentum)
+
+        fig = plt.figure(figsize=FIGSIZE)
+        ax = fig.add_subplot(111)
+
+        df.plot()
+
+        plt.show()
+
+    elif (x, y) == ("p", "q"):
         plotpq(uda)
     else:
 
