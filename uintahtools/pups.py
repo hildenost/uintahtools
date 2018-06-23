@@ -238,11 +238,6 @@ def dataframe_create(x, y, uda, timesteps):
     return df
 
 
-def andregradsligning(a, b, c):
-    x = (-b + sqrt(b**2 - 4 * a * c)) / (2 * a)
-    return x
-
-
 def plot_analytical(func,
                     ax,
                     timeseries=[],
@@ -406,6 +401,9 @@ def udaplot(x, y, uda):
             [ ] Tab completion
         [ ] Plot labels
             [ ] Labels on the time series
+        [ ] Make p-q-p_w-plot
+            [ ] For given particles
+            [ ] For all particles
 
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
