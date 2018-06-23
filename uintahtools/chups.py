@@ -30,6 +30,7 @@ from ruamel.yaml import YAML, yaml_object
 
 yaml = YAML()
 
+
 @yaml_object(yaml)
 class Material:
     """YAML class for the constitutive model.
@@ -41,7 +42,7 @@ class Material:
       materialparam2: another_value
       ...
       materialparamn: last_value
-    
+
     """
     yaml_tag = u"!material"
 
@@ -51,7 +52,7 @@ class Material:
 
 class UPS:
     """Class containing the parsed UPS XML tree and related methods."""
-    
+
     def __init__(self, ups, settings=None):
         self.tree = self.parse_ups(ups)
         self.settings = yaml.load(settings) if settings else None
@@ -77,14 +78,16 @@ class UPS:
             elif key == "load_curve":
                 # Change the load curve. The entire previous load curve
                 # is replaced by the YAML provided one.
-                
+
                 # Loop through all time_point tags and delete
-                [tag.remove(tp) for tp in self.search_tag("time_point", one=False)]
+                [tag.remove(tp)
+                 for tp in self.search_tag("time_point", one=False)]
 
                 # Add the new load curve
                 for timepoint in value:
                     test = etree.SubElement(tag, "time_point")
-                    [self.add_subelement(test, key, str(value)) for key, value in timepoint.items()]
+                    [self.add_subelement(test, key, str(value))
+                     for key, value in timepoint.items()]
             else:
                 tag.text = str(value)
         else:
@@ -98,13 +101,15 @@ class UPS:
                 tag.attrib['type'] = value.type
 
                 # Assigning new child nodes with the material properties provided
-                [self.add_subelement(tag, key, str(value)) for key, value in vars(value).items() if key != "type"]
+                [self.add_subelement(tag, key, str(value)) for key, value in vars(
+                    value).items() if key != "type"]
             else:
-                print("WARNING: The tag", key,"was not specified in input ups file. Skipped it.")
+                print("WARNING: The tag", key,
+                      "was not specified in input ups file. Skipped it.")
 
     def search_tag(self, tagname, one=True):
         """Return the result of endless search of tag in tree.
-        
+
         By default, the first result is returned, but if all is set
         to True, all results are returned.
 
@@ -126,7 +131,7 @@ class UPS:
     def create_name(self):
         """Set the name of the simulation suite family based on the input file title."""
         return self.search_tag("title").text
-  
+
     def get_values(self, key):
         if key == "load_curve":
             return self.settings[key]["middle_time"]
@@ -145,53 +150,66 @@ class UPS:
         """Generate the simulation suite based on all combinations from settings."""
         # Check if we're dealing with a combinatorical approach
         if "combine" in self.settings:
-            # If combine holds a value other than true, create a folder where all
-            # related files are placed, including a copy of the original input file
-            try:
-                os.mkdir(self.settings["combine"])
-            except FileExistsError:
-                print("Directory", self.settings["combine"],"already exists. Skipping creation.")
-            os.chdir(self.settings["combine"])
+            # All generated input files are placed here, including a copy of the original input file
+            changedirectory(self.settings["combine"])
 
-            self.tree.write(self.name+".ups", pretty_print=True, xml_declaration=True)
+            self.tree.write(self.name+".ups", pretty_print=True,
+                            xml_declaration=True)
 
             # We are going to combine some parameters into multiple input files
             # Getting parameters to vary
-            tags = {key: self.get_values(key) for key in self.settings if key != "combine"}
+            tags = {key: self.get_values(key)
+                    for key in self.settings if key != "combine"}
             # Getting the tags to vary
             defaults = {tag: self.base_tags(tag) for tag in tags}
             # Expanding it all into a list of dicts
             combos = [{key: value} for key in tags for value in tags[key]]
-            
+
             for combo in combos:
                 # Create a title from the combos by adding the abbreviated
                 # names of the altered parameters plus their values.
                 # `long_name_parameter: 0.5` adds lnp05 to title.
-                title = "-".join(abbrev(key)+str(v).strip() for key, v in combo.items())
-                outputups = self.name +"-"+ slugify(title) + ".ups"
+                title = "-".join(abbrev(key)+str(v).strip()
+                                 for key, v in combo.items())
+                outputups = self.name + "-" + slugify(title) + ".ups"
                 filebase = self.name + "-" + slugify(title) + ".uda"
                 self.update_tag("filebase", filebase)
                 self.update_tag("title", " ".join([self.name, title]))
                 [self.update_given(defaults[tag], combo[update]) for tag in defaults
-                                        for update in combo
-                                        if tag == update]
-                self.tree.write(outputups, pretty_print=True, xml_declaration=True)
+                 for update in combo
+                 if tag == update]
+                self.tree.write(outputups, pretty_print=True,
+                                xml_declaration=True)
         else:
-            [self.update_tag(key, value) for key, value in self.settings.items()]
+            [self.update_tag(key, value)
+             for key, value in self.settings.items()]
             outputups = slugify(self.search_tag("title").text) + ".ups"
             self.tree.write(outputups, pretty_print=True, xml_declaration=True)
         return os.getcwd()
 
+
 def abbrev(string):
     """Returns the first letter in each underscore-separated word."""
     return ''.join(word[0] for word in string.split('_'))
+
+
+def changedirectory(folder):
+    """Changes directory to folder. Creates the folder if it does not exist."""
+    try:
+        os.mkdir(folder)
+    except FileExistsError:
+        print("Directory", folder,
+              "already exists. Skipping creation.")
+
+    os.chdir(folder)
+
 
 def slugify(text):
     """
     Removes non-word characters (alphanumerics) and converts spaces to hyphens.
     Also strips leading and trailing whitespace.
     """
-    text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+    text = unicodedata.normalize('NFKD', text).encode(
+        'ascii', 'ignore').decode('ascii')
     text = re.sub('[^\w\s-]', '', text).strip()
     return re.sub('[-\s]+', '-', text)
-
