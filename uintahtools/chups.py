@@ -24,11 +24,14 @@ writing the resulting object tree to a specified output file.
 import os
 import re
 import unicodedata
+import copy
 
 from lxml import etree
 from ruamel.yaml import YAML, yaml_object
 
 yaml = YAML()
+
+VERBOSE = False
 
 
 @yaml_object(yaml)
@@ -146,45 +149,76 @@ class UPS:
         sub.text = text
         return sub
 
+    def create_ups_file(self, name):
+        self.tree.write(name+".ups", pretty_print=True, xml_declaration=True)
+
+    def merge_settings(self, defaults, settings):
+        defaults = {default: defaults[default].text for default in defaults}
+        result = []
+
+        for tag, setting in settings.items():
+            context = copy.deepcopy(defaults)
+            for value in setting:
+                context.update({tag: value})
+                result.append(copy.deepcopy(context))
+
+        return result
+
+    def update_ups(self, defaults, combo):
+        """Update the input ups file with the new settings."""
+        [self.update_given(defaults[tag], combo[update]) for tag in defaults
+         for update in combo
+         if tag == update]
+
+    def update_title_and_filebase(self, combo):
+        """Create a title from the combos by adding the abbreviated
+        names of the altered parameters plus their values.
+         `long_name_parameter: 0.5` adds lnp05 to title.
+
+        Then update the corresponding fields in the ups-file.
+
+        """
+
+        title = "-".join(abbrev(key)+str(v).strip()
+                         for key, v in combo.items())
+
+        new_file_name = "-".join((self.name, slugify(title)))
+        filebase = new_file_name + ".uda"
+
+        self.update_tag("filebase", filebase)
+        self.update_tag("title", " ".join((self.name, title)))
+
+        return new_file_name
+
     def generate_ups(self):
         """Generate the simulation suite based on all combinations from settings."""
+
         # Check if we're dealing with a combinatorical approach
         if "combine" in self.settings:
-            # All generated input files are placed here, including a copy of the original input file
-            changedirectory(self.settings["combine"])
-
-            self.tree.write(self.name+".ups", pretty_print=True,
-                            xml_declaration=True)
+            # All generated input files are placed in the specified folder,
+            # including a copy of the original input file
+            change_directory(self.settings["combine"], verbose=VERBOSE)
+            self.create_ups_file(self.name)
 
             # We are going to combine some parameters into multiple input files
             # Getting parameters to vary
             tags = {key: self.get_values(key)
                     for key in self.settings if key != "combine"}
-            # Getting the tags to vary
+
+            # Getting the default value and the tag that should be varied
             defaults = {tag: self.base_tags(tag) for tag in tags}
-            # Expanding it all into a list of dicts
-            combos = [{key: value} for key in tags for value in tags[key]]
+
+            # Combining it all into a list of settings dicts
+            combos = self.merge_settings(defaults, tags)
 
             for combo in combos:
-                # Create a title from the combos by adding the abbreviated
-                # names of the altered parameters plus their values.
-                # `long_name_parameter: 0.5` adds lnp05 to title.
-                title = "-".join(abbrev(key)+str(v).strip()
-                                 for key, v in combo.items())
-                outputups = self.name + "-" + slugify(title) + ".ups"
-                filebase = self.name + "-" + slugify(title) + ".uda"
-                self.update_tag("filebase", filebase)
-                self.update_tag("title", " ".join([self.name, title]))
-                [self.update_given(defaults[tag], combo[update]) for tag in defaults
-                 for update in combo
-                 if tag == update]
-                self.tree.write(outputups, pretty_print=True,
-                                xml_declaration=True)
+                self.update_ups(defaults, combo)
+                new_file_name = self.update_title_and_filebase(combo)
+                self.create_ups_file(new_file_name)
         else:
             [self.update_tag(key, value)
              for key, value in self.settings.items()]
-            outputups = slugify(self.search_tag("title").text) + ".ups"
-            self.tree.write(outputups, pretty_print=True, xml_declaration=True)
+            self.create_ups_file(slugify(self.search_tag("title").text))
         return os.getcwd()
 
 
@@ -193,13 +227,14 @@ def abbrev(string):
     return ''.join(word[0] for word in string.split('_'))
 
 
-def changedirectory(folder):
+def change_directory(folder, verbose=False):
     """Changes directory to folder. Creates the folder if it does not exist."""
     try:
         os.mkdir(folder)
     except FileExistsError:
-        print("Directory", folder,
-              "already exists. Skipping creation.")
+        if verbose:
+            print("Directory", folder,
+                  "already exists. Skipping creation.")
 
     os.chdir(folder)
 
