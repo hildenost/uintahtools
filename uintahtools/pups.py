@@ -423,6 +423,44 @@ def plotpq(uda):
     plt.show()
 
 
+def insert_boundary_values(value, df):
+    """Inserting a row of predefined value at boundaries.
+
+    Boundaries are currently hardcoded to be at positions 0 and 1.
+
+    """
+    rowmin = 0
+    rowmax = 1
+
+    row_values = [value] * len(list(df))
+    df.loc[rowmin] = row_values
+    df.loc[rowmax] = row_values
+    return df.sort_index()
+
+
+class Beam:
+    def __init__(self, b, l, h, E):
+        self.b = b
+        self.l = l
+        self.h = h
+        self.E = E
+        self.I = self.second_moment_of_area(b, h)
+
+    def second_moment_of_area(self, b, h):
+        return b * h * h * h / 12.0
+
+
+def normalise_momentum(momentum, beam):
+    """Normalising the momentum along the beam.
+
+      norm_M = momentum * beam_length / (elastic_modulus * second_moment_of_area)
+    """
+    def norm_M(M):
+        return M * beam.l / (beam.E * beam.I)
+
+    return momentum.apply(norm_M)
+
+
 def udaplot(x, y, uda):
     """Module pups main plotting function.
 
@@ -447,11 +485,17 @@ def udaplot(x, y, uda):
 
         # Get initial values
         # initial beam length
-        beamlength = 1.0
+        beam_length = 1.0
         # initial beam section area
-        beamarea = 0.3 * 0.1
+        beam_height = 0.3
+        beam_breadth = 0.1
+        # Elastic modulus
+        elastic_modulus = 10e6
+        beam = Beam(b=beam_breadth, l=beam_length,
+                    h=beam_height, E=elastic_modulus)
 
-        timeseries = [0.0, 0.02, 0.08, 0.1, 0.2, 1, 2, 4, 5]
+        timeseries = [0.0, 0.1, 0.2, 0.4, 0.5, 0.8, 1,
+                      1.2, 1.6]
         timesteps = timesteps_get(
             timedict=sorted(
                 timesteps_parse(cmd_run([PUDA, "-timesteps", uda])).values()),
@@ -469,13 +513,12 @@ def udaplot(x, y, uda):
         grouped = df.groupby("x")
 
         df = dataframe_create(x, y, uda, timesteps)
-        # print(df)
 
         momentum = compute_pore_pressure_momentum(grouped, df)
         df = pd.DataFrame(data=momentum)
+        df = normalise_momentum(df, beam)
 
-        fig = plt.figure(figsize=FIGSIZE)
-        ax = fig.add_subplot(111)
+        df = insert_boundary_values(0.0, df)
 
         df.plot()
 
