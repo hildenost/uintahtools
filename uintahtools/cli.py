@@ -68,9 +68,12 @@ def plot(xvar, yvar, uda):
 @click.option("--run", is_flag=True, help="run all generated input files")
 def generate(ups, yaml, run):
     """Generate simulation suite based on a UPS file with settings from a YAML file."""
+    print("Generating...")
     folder = UPS(ups, yaml).generate_ups()
+    print("Generate simulation suite in", folder)
     if run:
-        folder_run(os.getcwd(), d=False)
+        print("The automatic run feature is not implemented yet.")
+        # folder_run(folder)  # , d=False)
 
 
 @cli.command("run", short_help="run the simulation suite")
@@ -80,6 +83,7 @@ def folder_run(folder):  # , d):
     """Run all Uintah input files residing in FOLDER."""
     click.echo(
         "Running all ups files in folder {folder}".format(folder=folder))
+    print("Running...")
     # if d:
     # click.echo("Using the debug executable.")
     suite = Suite(folder)
