@@ -273,7 +273,12 @@ def annotate(plt, timeseries, df):
     return
 
 
-def udaplot(x, y, uda):
+def swap_uda_extension(uda, ext):
+    """Uda results are in a folder, so in-built functions are of no use."""
+    return ".".join((uda.split(".")[0], ext))
+
+
+def udaplot(x, y, uda, output=None):
     """Module pups main plotting function.
 
     From a given set of timepoints, the provided variables are extracted
@@ -342,9 +347,15 @@ def udaplot(x, y, uda):
     plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
 
     # df.to_clipboard(excel=True)
-    plt.show()
 
-    # plt.savefig("terzaghi-dynamic.pdf", dpi=300)
+    if (output):
+        if (len(output) == 1):
+            outfile = swap_uda_extension(uda, "pdf")
+        else:
+            outfile = output[1]
+        plt.savefig(outfile, dpi=300)
+    else:
+        plt.show()
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.
