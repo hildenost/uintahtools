@@ -28,6 +28,7 @@ from uintahtools import UPS
 
 colorama.init(autoreset=True)
 
+
 class Prompt(cmd.Cmd):
     """Command processor to survey the simulations."""
 
@@ -52,35 +53,35 @@ class Prompt(cmd.Cmd):
         """prod [pid]\tget process progress as time out of total time"""
         if pid.isdigit() and int(pid) in self.pids:
             print("Inspecting process number {pid}".format(pid=pid))
-            
+
             # Get max time
             inputfile = self.processes[pid][0].args[1]
             ups = UPS(inputfile)
             max_time = float(ups.search_tag("maxTime").text)
 
             tail = subprocess.run(["tail", self.processes[pid][1].name],
-                    stdout=subprocess.PIPE,
-                    universal_newlines=True)
+                                  stdout=subprocess.PIPE,
+                                  universal_newlines=True)
             result = re.findall(
                 "Time=(?P<time>(0|[1-9]\d*)(\.\d+)?([eE][+\-]?\d*)?)",
                 tail.stdout,
                 re.MULTILINE
             )
             current_time = float(result[-1][0])
-            
-            percentage_done = round(current_time/max_time*100,1)
+
+            percentage_done = round(current_time / max_time * 100, 1)
 
             def tcolour(number):
                 """Colour the number."""
                 return Fore.GREEN + str(number) + Fore.RESET
 
             print("At time {current_time} of {max_time},"
-                " simulation is {percentage}% done.".format(
-                    current_time=tcolour(current_time),
-                    max_time=tcolour(max_time),
-                    percentage=tcolour(percentage_done)
-                ))
-            
+                  " simulation is {percentage}% done.".format(
+                      current_time=tcolour(current_time),
+                      max_time=tcolour(max_time),
+                      percentage=tcolour(percentage_done)
+                  ))
+
             count = current_time
             total = max_time
             bar_len = 60
@@ -89,9 +90,10 @@ class Prompt(cmd.Cmd):
             percents = round(100.0 * count / float(total), 1)
             bar = '=' * filled_len + '.' * (bar_len - filled_len)
 
-            sys.stdout.write(Fore.LIGHTCYAN_EX +'[{bar}] \033[1m{percents}%\033[0m\n'.format(bar=bar, percents=percents))
+            sys.stdout.write(
+                Fore.LIGHTCYAN_EX + '[{bar}] \033[1m{percents}%\033[0m\n'.format(bar=bar, percents=percents))
             sys.stdout.flush()
-    
+
     def do_kill(self, pid):
         """kill [pid]|all\tkill process by id or all processes"""
         # TODO: make use of Popen.kill() in stead
@@ -103,7 +105,8 @@ class Prompt(cmd.Cmd):
             self.pids.clear()
             print("All processes killed.")
         elif pid.isdigit() and int(pid) in self.pids:
-            print("Killing simulation with process id {pid}...".format(pid=pid))
+            print(
+                "Killing simulation with process id {pid}...".format(pid=pid))
             subprocess.run(["kill", pid])
             self.pids.remove(int(pid))
             print("Process killed.")
@@ -114,7 +117,7 @@ class Prompt(cmd.Cmd):
         else:
             print("No processes left. Quitting prompt.")
             return True
-    
+
     def do_EOF(self, line):
         """Make it possible to use ctrl+d to exit."""
         return True
@@ -137,7 +140,7 @@ class Suite:
         self.UINTAHPATH = self.get_uintahpath()
         self.logfiles = []
         self.testsuite = {}
-    
+
     def get_uintahpath(self):
         yaml = YAML()
         settings = yaml.load(Path(CONFIG))
@@ -156,41 +159,46 @@ class Suite:
         """Run all the files in directory, directing stdout to a specified logfile."""
 
         # TODO: Make sure the log file "deletes itself". No reason to save all output...
-        self.testsuite = {upsfile: self.logfile(upsfile) for upsfile in self.files}
+        self.testsuite = {upsfile: self.logfile(
+            upsfile) for upsfile in self.files}
 
         processes = [(subprocess.Popen([self.UINTAHPATH, inputfile],
-                            stdout=open(logfile, "w"),
-                            stderr=subprocess.STDOUT,
-                            universal_newlines=True
-                            ), logfile) for inputfile, logfile in self.testsuite.items()]
-        
-        print()
+                                       stdout=open(logfile, "w"),
+                                       stderr=subprocess.STDOUT,
+                                       universal_newlines=True
+                                       ), logfile) for inputfile, logfile in self.testsuite.items()]
+
+        print("Uintah at ", self.UINTAHPATH)
         print("Pid   Input file")
-        [print("\033[1m"+str(p.pid)+"\033[0m", p.args[1]) for p, __ in processes]
+        [print("\033[1m" + str(p.pid) + "\033[0m", p.args[1])
+         for p, __ in processes]
         print()
         print("Waiting for completion... Cancel all processes with ctrl+c")
 
-        # The threading is suitable here
-        # Prompt(processes).cmdloop()
+        # # The threading is suitable here
+        # # Prompt(processes).cmdloop()
 
-        # Trying to swap log files
-        # MAX_BYTES = 26214400 # 25MB
-        MAX_BYTES = 100000
+        # # Trying to swap log files
+        # # MAX_BYTES = 26214400 # 25MB
+        # MAX_BYTES = 100000
 
-        while None in [p.poll() for p, __ in processes]:
-            for p, logfile in processes:
-                size = os.path.getsize(os.path.abspath(logfile))
-                print(logfile, "has size", size, "in bytes")
-                if size >= MAX_BYTES:
-                    print("Logfile too large.")
-                    # shutil.copyfile(logfile, +".1")
-                    # Need to stop the process in order to delete contents of logfile
-                    p.send_signal(signal.SIGSTOP)
-                    with open(logfile, "w") as f:
-                        pass
-                    p.send_signal(signal.SIGCONT)
-                    
-        [p.wait() for p, __ in processes]
+        # while None in [p.poll() for p, __ in processes]:
+        #     for p, logfile in processes:
+        #         size = os.path.getsize(os.path.abspath(logfile))
+        #         print(logfile, "has size", size, "in bytes")
+        #         if size >= MAX_BYTES:
+        #             print("Logfile too large.")
+        #             # shutil.copyfile(logfile, +".1")
+        #             # Need to stop the process in order to delete contents of logfile
+        #             p.send_signal(signal.SIGSTOP)
+        #             with open(logfile, "w") as f:
+        #                 pass
+        #             p.send_signal(signal.SIGCONT)
+
+        for p, __ in processes:
+            p.wait()
+            print("Process " + str(p.pid) + "     " + p.args[1] + " FINISHED")
+        #[p.wait() for p, __ in processes]
         print("All simulations finished!")
 
         # Clean up

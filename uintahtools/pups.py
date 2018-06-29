@@ -232,10 +232,11 @@ def dataframe_create(x, y, uda, timesteps):
     """
     settings = {
         "y": {
-            'flip': False
+            'flip': False,
+            'offset': 1
         },
         x: {
-            'varmax': 1e4
+            'varmax': -1e4
         },
     }
 
@@ -251,8 +252,10 @@ def dataframe_create(x, y, uda, timesteps):
     if normal:
         df = pd.merge(*dfs).filter([x, "y",
                                     "time"]).drop_duplicates([x, "y", "time"])
+        print(df.head())
         for col in (x, "y"):
             df[col] = df[col].map(lambda t: normalize(t, **settings[col]))
+        print(df.head())
     else:
         pass
 
@@ -280,7 +283,7 @@ def plot_analytical(func,
                     timeseries=[],
                     zs=[],
                     samples=40,
-                    maxj=15,
+                    maxj=30,
                     time=False):
     """Compute and plot analytical solution.
 
@@ -494,8 +497,8 @@ def udaplot(x, y, uda):
         beam = Beam(b=beam_breadth, l=beam_length,
                     h=beam_height, E=elastic_modulus)
 
-        timeseries = [0.0, 0.1, 0.2, 0.4, 0.5, 0.8, 1,
-                      1.2, 1.6]
+        # , 0.2, 0.5, 0.8, 1.4, 2.2, 2.8]
+        timeseries = [0, 0.02, 0.08, 0.26, 0.5, 1]
         timesteps = timesteps_get(
             timedict=sorted(
                 timesteps_parse(cmd_run([PUDA, "-timesteps", uda])).values()),
@@ -520,6 +523,9 @@ def udaplot(x, y, uda):
 
         df = insert_boundary_values(0.0, df)
 
+        # Ditching initial time
+        df.drop(df.columns[0], axis=1, inplace=True)
+
         df.plot()
 
         plt.show()
@@ -536,6 +542,8 @@ def udaplot(x, y, uda):
             times=timeseries)
 
         df = dataframe_create(x, y, uda, timesteps)
+        print(df.head())
+        print(df.tail())
 
         fig = plt.figure(figsize=FIGSIZE)
         ax = fig.add_subplot(111)

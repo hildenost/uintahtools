@@ -72,8 +72,10 @@ def generate(ups, yaml, run):
     folder = UPS(ups, yaml).generate_ups()
     print("Generate simulation suite in", folder)
     if run:
-        print("The automatic run feature is not implemented yet.")
-        # folder_run(folder)  # , d=False)
+        print()
+        print("Running...")
+        suite = Suite(folder)
+        suite.run()
 
 
 @cli.command("run", short_help="run the simulation suite")

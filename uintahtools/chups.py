@@ -118,7 +118,7 @@ class UPS:
 
         """
         func = self.tree.find if one else self.tree.findall
-        res = func(".//"+tagname)
+        res = func(".//" + tagname)
         return res
 
     def base_tags(self, tag):
@@ -150,7 +150,7 @@ class UPS:
         return sub
 
     def create_ups_file(self, name):
-        self.tree.write(name+".ups", pretty_print=True, xml_declaration=True)
+        self.tree.write(name + ".ups", pretty_print=True, xml_declaration=True)
 
     def merge_settings(self, defaults, settings):
         defaults = {default: defaults[default].text for default in defaults}
@@ -179,10 +179,10 @@ class UPS:
 
         """
 
-        title = "-".join(abbrev(key)+str(v).strip()
+        title = "-".join(abbrev(key) + str(v).strip()
                          for key, v in combo.items())
 
-        new_file_name = "-".join((self.name, slugify(title)))
+        new_file_name = "-".join((slugify(self.name), slugify(title)))
         filebase = new_file_name + ".uda"
 
         self.update_tag("filebase", filebase)
@@ -198,7 +198,7 @@ class UPS:
             # All generated input files are placed in the specified folder,
             # including a copy of the original input file
             change_directory(self.settings["combine"], verbose=VERBOSE)
-            self.create_ups_file(self.name)
+            self.create_ups_file(slugify(self.name))
 
             # We are going to combine some parameters into multiple input files
             # Getting parameters to vary
@@ -214,6 +214,7 @@ class UPS:
             for combo in combos:
                 self.update_ups(defaults, combo)
                 new_file_name = self.update_title_and_filebase(combo)
+                print(new_file_name)
                 self.create_ups_file(new_file_name)
         else:
             [self.update_tag(key, value)
