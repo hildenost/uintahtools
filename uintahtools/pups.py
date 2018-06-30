@@ -20,8 +20,8 @@ import seaborn as sns
 sns.set(color_codes=True)
 from ruamel.yaml import YAML
 
-
 from uintahtools import CONFIG
+from uintahtools.uda import Uda
 from uintahtools.terzaghi.terzaghi import terzaghi
 
 # Creating global variable PUDA
@@ -317,15 +317,14 @@ def equivalent_stress(s11, s22, s33, s12, s13, s23):
     return np.sqrt(3.0 * J2)
 
 
-def plotpq(uda):
+def pqplot(uda):
     """Plot of p-q-stress paths."""
 
     print("Creating a p-q-stresspath-plot")
 
     # Step 1: Generate list of timesteps
     timesteps = timesteps_get(
-        timedict=sorted(timesteps_parse(
-            cmd_run([PUDA, "-timesteps", uda])).values()),
+        timedict=generate_timedict(uda),
         samples=10
     )
 
@@ -391,6 +390,60 @@ def swap_uda_extension(uda, ext):
     return ".".join((uda.split(".")[0], ext))
 
 
+def generate_timedict(uda):
+    return sorted(timesteps_parse(
+        cmd_run([PUDA, "-timesteps", uda])).values())
+
+
+def plot_consolidation_curves(x, y, uda, output):
+    timeseries = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
+
+    timesteps = timesteps_get(
+        times=timeseries,
+        timedict=generate_timedict(uda)
+    )
+
+    df = dataframe_create(x, y, uda, timesteps)
+
+    fig = plt.figure(figsize=FIGSIZE)
+    ax = fig.add_subplot(111)
+
+    # Plotting the reference solution
+    plot_analytical(terzaghi, ax, timeseries)
+
+    # Plotting the dataframe
+    df.plot.scatter(x=x, y="y", ax=ax, color="none",
+                    edgecolor="black", zorder=2, label="MPM-FVM")
+
+    # Removing plot frame
+    for side in {'right', 'top'}:
+        ax.spines[side].set_visible(False)
+
+    ax.set_xbound(lower=0)
+    ax.set_ybound(lower=0, upper=1)
+
+    # Adding labels
+    xlabel = "Normalized pore pressure $p/p_0$"
+    ylabel = "Normalized depth $z/H$"
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    # Adding annotations
+    annotate(plt, timeseries, df)
+
+    # Adding legend
+    plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
+
+    if (output):
+        if (len(output) == 1):
+            outfile = swap_uda_extension(uda, "pdf")
+        else:
+            outfile = output[1]
+        plt.savefig(outfile, dpi=300)
+    else:
+        plt.show()
+
+
 def udaplot(x, y, uda, output=None):
     """Module pups main plotting function.
 
@@ -404,8 +457,6 @@ def udaplot(x, y, uda, output=None):
         [ ] Listing the variables this uda has tracked
         [ ] If no variables provided, interactively choose
             [ ] Tab completion
-        [ ] Plot labels
-            [ ] Labels on the time series
         [ ] Make p-q-p_w-plot
             [ ] For given particles
             [ ] For all particles
@@ -413,61 +464,18 @@ def udaplot(x, y, uda, output=None):
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
 
+    uda = Uda(uda)
+    print("Creating uda object:", uda)
+    exit()
+
     if (x, y) == ("p", "q"):
         print("Creating a pqplot")
 
         pqplot(uda)
 
         exit()
-    else:
-
-        timeseries = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
-
-        timesteps = timesteps_get(
-            times=timeseries,
-            timedict=sorted(timesteps_parse(
-                cmd_run([PUDA, "-timesteps", uda])).values())
-        )
-
-        df = dataframe_create(x, y, uda, timesteps)
-
-        fig = plt.figure(figsize=(5, 3.8))
-        ax = fig.add_subplot(111)
-
-        # Plotting the reference solution
-        plot_analytical(terzaghi, ax, timeseries)
-
-        # Plotting the dataframe
-        df.plot.scatter(x=x, y="y", ax=ax, color="none",
-                        edgecolor="black", zorder=2, label="MPM-FVM")
-
-        # Removing plot frame
-        for side in {'right', 'top'}:
-            ax.spines[side].set_visible(False)
-
-        ax.set_xbound(lower=0)
-        ax.set_ybound(lower=0, upper=1)
-
-        # Adding labels
-        xlabel = "Normalized pore pressure $p/p_0$"
-        ylabel = "Normalized depth $z/H$"
-        ax.set_xlabel(xlabel)
-        ax.set_ylabel(ylabel)
-
-        # Adding annotations
-        annotate(plt, timeseries, df)
-
-        # Adding legend
-        plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
-
-        if (output):
-            if (len(output) == 1):
-                outfile = swap_uda_extension(uda, "pdf")
-            else:
-                outfile = output[1]
-            plt.savefig(outfile, dpi=300)
-        else:
-            plt.show()
+    elif y == "time":
+        print("Printing variable ", x, " vs ", y)
 
         # New dataframe for selected depths.
         # Collects depth, porepressure and time.
@@ -505,3 +513,6 @@ def udaplot(x, y, uda, output=None):
         # LINEEXTRACT -v p.porepressure -istart 3 0 0 -iend 3 40 0 -uda uda
         # lineextract(uda)
         # print(df)
+
+    else:
+        plot_consolidation_curves(x, y, uda, output)
