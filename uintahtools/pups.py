@@ -464,10 +464,11 @@ def udaplot(x, y, uda, output=None):
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
 
-    uda = Uda(uda)
+    timesteps = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
+    uda = Uda(uda, timesteps)
     print("Creating uda object:", uda)
 
-    print(uda.timedict)
+    print(uda.timesteps)
     exit()
 
     if (x, y) == ("p", "q"):

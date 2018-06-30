@@ -2,9 +2,10 @@ import os
 import re
 import subprocess
 
-
+import numpy as np
 from ruamel.yaml import YAML
 from pathlib import Path
+
 
 from uintahtools import CONFIG
 
@@ -17,9 +18,9 @@ PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 class Uda:
     """Class for manipulation of and data extraction from the Uintah result folder .uda/."""
 
-    def __init__(self, uda):
+    def __init__(self, uda, timesteps=None, every=None, samples=None):
         self.uda = uda
-        self.timedict = self.generate_timedict()
+        self.timesteps = self.get_timesteps(timesteps, every, samples)
 
     def __str__(self):
         return self.uda
@@ -32,6 +33,35 @@ class Uda:
         result = re.findall("(?P<timestep>\d+): (?P<simtime>.*)", output,
                             re.MULTILINE)
         return {int(timestep): float(simtime) for timestep, simtime in result}
+
+    def get_timesteps(self, timesteps=None, every=None, samples=None):
+        """Generate a list of timestep indices.
+
+        If a list of timesteps is provided, return the index of the best-fitting timestep.
+        If instead the caller wants every nth timestep, the list of timesteps is
+        generated from the frequency.
+        If the caller wants a total of N samples, the list of timesteps returned contains
+        N + 1 timesteps, to include the very first timestep.
+
+        """
+        timedict = self.generate_timedict()
+
+        if samples is not None:
+            stride = len(timedict) // samples
+            return [str(i) for i in range(0, len(timedict), stride)]
+        elif every is not None:
+            max_time_index = len(timedict) - 1
+            indices = [str(i) for i in range(0, max_time_index, every)]
+
+            # Inclusive interval: including the maximum time step index,
+            # even when it does not fit with the stride
+            if not str(max_time_index) in indices:
+                indices.append(str(max_time_index))
+
+            return indices
+        elif timesteps is not None:
+            idx = np.searchsorted(timedict, timesteps)
+            return [str(i) for i in idx] if isinstance(timesteps, list) else [str(idx)]
 
 
 def cmd_make(var, uda, timestep=None):
