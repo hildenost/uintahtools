@@ -466,6 +466,8 @@ def udaplot(x, y, uda, output=None):
 
     uda = Uda(uda)
     print("Creating uda object:", uda)
+
+    print(uda.timedict)
     exit()
 
     if (x, y) == ("p", "q"):

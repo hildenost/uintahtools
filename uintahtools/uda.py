@@ -1,3 +1,16 @@
+import os
+import re
+import subprocess
+
+
+from ruamel.yaml import YAML
+from pathlib import Path
+
+from uintahtools import CONFIG
+
+
+yaml = YAML()
+load = yaml.load(Path(CONFIG))
 PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 
 
@@ -6,21 +19,22 @@ class Uda:
 
     def __init__(self, uda):
         self.uda = uda
+        self.timedict = self.generate_timedict()
 
     def __str__(self):
         return self.uda
 
     def generate_timedict(self):
-        return self.timesteps_parse(cmd_run([PUDA, "-timesteps", self.uda])).values())
+        return sorted(self.timesteps_parse(cmd_run([PUDA, "-timesteps", self.uda])).values())
 
     def timesteps_parse(self, output):
         """Parse timesteps, return a dict of {timestep: simtime}."""
-        result=re.findall("(?P<timestep>\d+): (?P<simtime>.*)", output,
+        result = re.findall("(?P<timestep>\d+): (?P<simtime>.*)", output,
                             re.MULTILINE)
-        return sorted({int(timestep): float(simtime) for timestep, simtime in result})
+        return {int(timestep): float(simtime) for timestep, simtime in result}
 
 
-def cmd_make(var, uda, timestep = None):
+def cmd_make(var, uda, timestep=None):
     """Assemble the command line instruction to extract variable.
 
     If timestep is provided, the timestep options are included in the command. Time can
@@ -30,10 +44,10 @@ def cmd_make(var, uda, timestep = None):
     This function should be invoked in a loop if one wishes to extract a given set
     of time snapshots.
     """
-    cmdargs=["-partvar", var]
+    cmdargs = ["-partvar", var]
     if timestep:
         if not isinstance(timestep, list):
-            timestep=[timestep]
+            timestep = [timestep]
         cmdargs.extend([
             "-timesteplow",
             str(min(timestep)), "-timestephigh",
@@ -45,5 +59,5 @@ def cmd_make(var, uda, timestep = None):
 def cmd_run(cmd):
     """Shortcut for the long and winding subprocess call output decoder."""
     return subprocess.run(
-        cmd, stdout = subprocess.PIPE, stderr = subprocess.PIPE,
-        check = True).stdout.decode("utf-8")
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        check=True).stdout.decode("utf-8")
