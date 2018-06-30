@@ -386,7 +386,12 @@ def plotpq(uda):
     plt.show()
 
 
-def udaplot(x, y, uda):
+def swap_uda_extension(uda, ext):
+    """Uda results are in a folder, so in-built functions are of no use."""
+    return ".".join((uda.split(".")[0], ext))
+
+
+def udaplot(x, y, uda, output=None):
     """Module pups main plotting function.
 
     From a given set of timepoints, the provided variables are extracted
@@ -409,46 +414,60 @@ def udaplot(x, y, uda):
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
 
     if (x, y) == ("p", "q"):
-        plotpq(uda)
+        print("Creating a pqplot")
+
+        pqplot(uda)
+
+        exit()
     else:
 
         timeseries = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
 
         timesteps = timesteps_get(
-            timedict=sorted(
-                timesteps_parse(cmd_run([PUDA, "-timesteps", uda])).values()),
-            times=timeseries)
+            times=timeseries,
+            timedict=sorted(timesteps_parse(
+                cmd_run([PUDA, "-timesteps", uda])).values())
+        )
 
         df = dataframe_create(x, y, uda, timesteps)
 
-        fig = plt.figure(figsize=FIGSIZE)
+        fig = plt.figure(figsize=(5, 3.8))
         ax = fig.add_subplot(111)
 
         # Plotting the reference solution
         plot_analytical(terzaghi, ax, timeseries)
 
         # Plotting the dataframe
-        norm = colors.BoundaryNorm(
-            boundaries=timeseries, ncolors=len(timeseries))
-        df.plot.scatter(
-            x=x,
-            y="y",
-            ax=ax,
-            c="time",
-            norm=norm,
-            cmap="Set3",
-            alpha=0.8,
-            xlim=(0, 1.2))
+        df.plot.scatter(x=x, y="y", ax=ax, color="none",
+                        edgecolor="black", zorder=2, label="MPM-FVM")
 
-        # df.to_clipboard(excel=True)
+        # Removing plot frame
+        for side in {'right', 'top'}:
+            ax.spines[side].set_visible(False)
+
+        ax.set_xbound(lower=0)
+        ax.set_ybound(lower=0, upper=1)
+
+        # Adding labels
+        xlabel = "Normalized pore pressure $p/p_0$"
+        ylabel = "Normalized depth $z/H$"
+        ax.set_xlabel(xlabel)
+        ax.set_ylabel(ylabel)
+
+        # Adding annotations
+        annotate(plt, timeseries, df)
 
         # Adding legend
         plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
 
-        # df.to_clipboard(excel=True)
-        plt.show()
-
-        # plt.savefig("terzaghicoarse.pdf", dpi=300)
+        if (output):
+            if (len(output) == 1):
+                outfile = swap_uda_extension(uda, "pdf")
+            else:
+                outfile = output[1]
+            plt.savefig(outfile, dpi=300)
+        else:
+            plt.show()
 
         # New dataframe for selected depths.
         # Collects depth, porepressure and time.
