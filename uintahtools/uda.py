@@ -25,6 +25,9 @@ class Uda:
     def __str__(self):
         return self.uda
 
+    def swap_extension(self, extension):
+        return ".".join((self.uda.split(".")[0], extension))
+
     def generate_timedict(self):
         return sorted(self.timesteps_parse(cmd_run([PUDA, "-timesteps", self.uda])).values())
 

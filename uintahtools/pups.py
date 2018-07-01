@@ -21,6 +21,7 @@ sns.set(color_codes=True)
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
+from uintahtools.settings import Settings
 from uintahtools.uda import Uda
 from uintahtools.terzaghi.terzaghi import terzaghi
 
@@ -302,89 +303,6 @@ def annotate(plt, timeseries, df):
     return
 
 
-def volumetric_stress():
-    """Create DataFrame.eval() expression for volumetric stress."""
-    return "p = (sigma11+sigma22+sigma33)/3.0"
-
-
-def equivalent_stress(s11, s22, s33, s12, s13, s23):
-    """Return compute equivalent stress for symmetric stress tensor."""
-    stress = np.array([[s11, s12, s13],
-                       [s12, s22, s23],
-                       [s13, s23, s33]])
-    stress_dev = stress - 1.0 / 3.0 * np.trace(stress) * np.eye(3)
-    J2 = 0.5 * np.trace(np.dot(stress_dev, stress_dev))
-    return np.sqrt(3.0 * J2)
-
-
-def pqplot(uda):
-    """Plot of p-q-stress paths."""
-
-    print("Creating a p-q-stresspath-plot")
-
-    # Step 1: Generate list of timesteps
-    timesteps = timesteps_get(
-        timedict=generate_timedict(uda),
-        samples=10
-    )
-
-    # Step 2: Create dataframe of p.stress, particleId and time
-    dfs = [dataframe_assemble(var, timesteps, uda)
-           for var in ("p.stress", "p.x")]
-    headers = ["time", "y", "partId", "sigma11", "sigma12", "sigma13",
-               "sigma21", "sigma22", "sigma23",
-               "sigma31", "sigma32", "sigma33"]
-    df = pd.merge(*dfs).filter(headers).drop_duplicates(["time", "y"])
-
-    # Step 3: Compute volumetric stress p and equivalent stress q
-    df.eval(volumetric_stress(), inplace=True)
-    df['q'] = np.vectorize(equivalent_stress)(df['sigma11'], df['sigma22'], df['sigma33'],
-                                              df['sigma12'], df['sigma13'], df['sigma23'])
-
-    # Step 4: Reorganising dataframe so that
-    #
-    #        |         y = 0.0        |      y = 1.0    |     |
-    #        +----+-------+-----+-----+----+------+-----+-----+
-    #  times | 0  |  0.01 | ... | 1.0 | 0  | 0.01 | ... | ... |
-    # -------+----+-------+-----+-----+----+------+-----+-----+
-    #    p   |    |       |     |     |    |      |     |     |
-    # -------+----+-------+-----+-----+----+------+-----+-----+
-    #    q   |    |       |     |     |    |      |     |     |
-    # -------+----+-------+-----+-----+----+------+-----+-----+
-    # TODO: Should reorganise dataframe so that columns are y-values, and rows are p,q
-    df = df[df.columns.drop(df.filter(regex='sigma').columns)]
-    print(df.head())
-    df["y"] = df[["y"]].apply(lambda x: x.astype('category'))
-    df = df.pivot_table(df, index=["time", "y"])
-    print(df)
-
-    # Step 5: Plot all p-q-paths in dataframe by particleId
-    # Tidying up dataframe
-    fig = plt.figure(figsize=FIGSIZE)
-    ax = fig.add_subplot(111)
-
-    # Plotting the dataframe
-    # norm = colors.BoundaryNorm(
-    # boundaries=timeseries, ncolors=len(timeseries))
-
-    df.plot.line(
-        x="p",
-        y="q",
-        ax=ax)  # ,
-    # c="y",
-    # norm=norm,
-    # cmap="autumn",
-    # alpha=0.8)
-
-    # df.plot(x="p", y="q", ax=ax)
-
-    # # Adding legend
-    # plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
-
-    # # df.to_clipboard(excel=True)
-    plt.show()
-
-
 def swap_uda_extension(uda, ext):
     """Uda results are in a folder, so in-built functions are of no use."""
     return ".".join((uda.split(".")[0], ext))
@@ -395,15 +313,15 @@ def generate_timedict(uda):
         cmd_run([PUDA, "-timesteps", uda])).values())
 
 
-def plot_consolidation_curves(x, y, uda, output):
+def plot_consolidation_curves(x, y, udapath, output):
     timeseries = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
 
     timesteps = timesteps_get(
         times=timeseries,
-        timedict=generate_timedict(uda)
+        timedict=generate_timedict(udapath)
     )
 
-    df = dataframe_create(x, y, uda, timesteps)
+    df = dataframe_create(x, y, udapath, timesteps)
 
     fig = plt.figure(figsize=FIGSIZE)
     ax = fig.add_subplot(111)
@@ -434,6 +352,10 @@ def plot_consolidation_curves(x, y, uda, output):
     # Adding legend
     plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
 
+    display_plot(plt, udapath, output)
+
+
+def display_plot(plt, uda, output):
     if (output):
         if (len(output) == 1):
             outfile = swap_uda_extension(uda, "pdf")
@@ -444,7 +366,7 @@ def plot_consolidation_curves(x, y, uda, output):
         plt.show()
 
 
-def udaplot(x, y, uda, output=None):
+def udaplot(x, y, udapath, output=None):
     """Module pups main plotting function.
 
     From a given set of timepoints, the provided variables are extracted
@@ -462,14 +384,22 @@ def udaplot(x, y, uda, output=None):
             [ ] For all particles
 
     """
-    print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
+    print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
 
-    timesteps = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
-    uda = Uda(uda, timesteps)
-    print("Creating uda object:", uda)
+    # if (x, y) == ("p.porepressure", "p.x"):
+    #     # Terzaghi consolidation curves
+    #     # Check settings. We need a path to the Uintah executable
 
-    print(uda.timesteps)
-    exit()
+    #     key = "terzaghi_timesteps"
+    #     settings = Settings()
+    #     settings.configure(key, override=False)
+
+    #     uda = Uda(udapath, settings[key])
+
+    #     print("Creating uda object:", uda)
+    #     print(uda.timesteps)
+
+    # exit()
 
     if (x, y) == ("p", "q"):
         print("Creating a pqplot")
@@ -518,4 +448,4 @@ def udaplot(x, y, uda, output=None):
         # print(df)
 
     else:
-        plot_consolidation_curves(x, y, uda, output)
+        plot_consolidation_curves(x, y, udapath, output)
