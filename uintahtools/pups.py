@@ -21,6 +21,7 @@ sns.set(color_codes=True)
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
+from uintahtools.dataframe import UdaDataFrame
 from uintahtools.settings import Settings
 from uintahtools.uda import Uda
 from uintahtools.terzaghi.terzaghi import terzaghi
@@ -386,6 +387,7 @@ def udaplot(x, y, udapath, output=None):
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
 
+    df = UdaDataFrame()
     # if (x, y) == ("p.porepressure", "p.x"):
     #     # Terzaghi consolidation curves
     #     # Check settings. We need a path to the Uintah executable
@@ -401,13 +403,7 @@ def udaplot(x, y, udapath, output=None):
 
     # exit()
 
-    if (x, y) == ("p", "q"):
-        print("Creating a pqplot")
-
-        pqplot(uda)
-
-        exit()
-    elif y == "time":
+    if y == "time":
         print("Printing variable ", x, " vs ", y)
 
         # New dataframe for selected depths.
