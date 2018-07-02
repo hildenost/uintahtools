@@ -196,23 +196,6 @@ def dataframe_create(x, y, uda, timesteps):
     return df
 
 
-def pqplot(uda):
-    """Create a stress p-q-plot.
-
-    (If material model is Cam clay, the yield surface start and stop is also drawn.)
-
-    If pore pressures present, total p also plotted.
-    """
-
-    # Step 1: Get stresses from uda-file
-    stresses = extracted("p.stress", uda, None)
-
-    print("Did command run?")
-    print(stresses)
-
-    print(timesteps_parse(cmd_run([PUDA, "-timesteps", uda])))
-
-
 def plot_analytical(func, ax, timeseries=[], zs=[], samples=40, maxj=50, time=False):
     """Compute and plot analytical solution.
 
@@ -278,7 +261,7 @@ def swap_uda_extension(uda, ext):
     return ".".join((uda.split(".")[0], ext))
 
 
-def udaplot(x, y, uda, output=None):
+def udaplot(x, y, uda, output, compare):
     """Module pups main plotting function.
 
     From a given set of timepoints, the provided variables are extracted
@@ -300,12 +283,12 @@ def udaplot(x, y, uda, output=None):
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
 
-    if (x, y) == ("p", "q"):
-        print("Creating a pqplot")
-
-        pqplot(uda)
-
-        exit()
+    if compare and len(uda) > 1:
+        print("Comparing ", len(uda))
+        uda2 = uda[1]
+    else:
+        compare = False
+    uda = uda[0]
 
     timeseries = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
 
@@ -325,7 +308,19 @@ def udaplot(x, y, uda, output=None):
 
     # Plotting the dataframe
     df.plot.scatter(x=x, y="y", ax=ax, color="none",
-                    edgecolor="black", zorder=2, label="MPM-FVM")
+                    edgecolor="black", zorder=4, label="MPM-FVM 40 cells")
+
+    # Plotting the additional uda
+    if compare:
+        timesteps = timesteps_get(
+            times=timeseries,
+            timedict=sorted(timesteps_parse(
+                cmd_run([PUDA, "-timesteps", uda])).values())
+        )
+
+        df2 = dataframe_create(x, y, uda2, timesteps)
+        df2.plot.scatter(x=x, y="y", ax=ax, color="black", marker="o",
+                         edgecolor="black", zorder=5, label="MPM-FVM 10 cells")
 
     # Removing plot frame
     for side in {'right', 'top'}:
@@ -344,15 +339,15 @@ def udaplot(x, y, uda, output=None):
     annotate(plt, timeseries, df)
 
     # Adding legend
-    plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
+    plt.legend(bbox_to_anchor=(0.85, 0), loc=4)
 
     # df.to_clipboard(excel=True)
 
     if (output):
-        if (len(output) == 1):
+        if (output == "std"):
             outfile = swap_uda_extension(uda, "pdf")
         else:
-            outfile = output[1]
+            outfile = output
         plt.savefig(outfile, dpi=300)
     else:
         plt.show()
