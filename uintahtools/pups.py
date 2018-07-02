@@ -184,8 +184,8 @@ def dataframe_create(x, y, uda, timesteps):
 
     """
     settings = {
-        "y": {'flip': False, 'offset': 1},
-        x: {'varmax': 1e4},
+        "y": {'flip': False, 'offset': 0},
+        x: {'varmax': -1e4},
     }
 
     dfs = [dataframe_assemble(var, timesteps, uda) for var in (x, y)]
@@ -256,9 +256,19 @@ def variablelist(uda):
 def annotate(plt, timeseries, df):
     """Annotate the isochrones."""
     # Creating labels
-    pos = [(0.22, 0.15),
-           (0.27, 0.25),
-           (0.51, 0.33),
+    # pos = [(0.22, 0.15),
+    #        (0.27, 0.25),
+    #        (0.51, 0.33),
+    #        (0.655, 0.34),
+    #        (0.87, 0.35),
+    #        (0.87, 0.5),
+    #        (0.87, 0.6),
+    #        (0.87, 0.7),
+    #        (0.8, 0.85)
+    #        ]
+    pos = [(0.2, 0.15),
+           (0.23, 0.25),
+           (0.37, 0.33),
            (0.655, 0.34),
            (0.87, 0.35),
            (0.87, 0.5),
@@ -317,11 +327,22 @@ def udaplot(x, y, uda, output=None):
 
     df = dataframe_create(x, y, uda, timesteps)
 
-    fig = plt.figure(figsize=(5, 3.8))
+    fig = plt.figure(figsize=(7.5, 3.8))
     ax = fig.add_subplot(111)
 
     # Plotting the reference solution
     plot_analytical(terzaghi, ax, timeseries)
+
+    time_set = set(df["time"])
+
+    for time in time_set:
+        print(time)
+        if time < 0.2:
+            subset = df[df.time == time]
+            print("SMALL!!")
+            print(subset)
+            subset.plot.scatter(x=x, y="y", ax=ax, color="red",
+                                edgecolor="black", zorder=2, legend=False)
 
     # Plotting the dataframe
     df.plot.scatter(x=x, y="y", ax=ax, color="none",
@@ -331,7 +352,7 @@ def udaplot(x, y, uda, output=None):
     for side in {'right', 'top'}:
         ax.spines[side].set_visible(False)
 
-    ax.set_xbound(lower=0)
+    ax.set_xbound(lower=0, upper=1.5)
     ax.set_ybound(lower=0, upper=1)
 
     # Adding labels
