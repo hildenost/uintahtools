@@ -12,6 +12,7 @@ from functools import partial
 from io import StringIO
 from pathlib import Path
 
+from cycler import cycler
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -27,6 +28,8 @@ load = yaml.load(Path(CONFIG))
 PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 PARTEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "partextract"])
 LINEEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "lineextract"])
+
+SIGNIFICANT_DIGITS = 3
 
 
 def header(var):
@@ -253,7 +256,7 @@ def variablelist(uda):
     return dict(result)
 
 
-def annotate(plt, timeseries, df):
+def annotate(plt, timeseries, df, maxtime=None):
     """Annotate the isochrones."""
     # Creating labels
     # pos = [(0.22, 0.15),
@@ -269,14 +272,18 @@ def annotate(plt, timeseries, df):
     pos = [(0.2, 0.15),
            (0.23, 0.25),
            (0.37, 0.33),
-           (0.655, 0.34),
+           (0.41, 0.515),
            (0.87, 0.35),
            (0.87, 0.5),
            (0.87, 0.6),
            (0.87, 0.7),
            (0.8, 0.85)
            ]
+
     for i, time in enumerate(reversed(timeseries)):
+        if maxtime and time < maxtime:
+            break
+
         label = "$T = " + str(time) + "$"
         plt.figtext(*pos[i], label, horizontalalignment="left")
 
@@ -335,15 +342,18 @@ def udaplot(x, y, uda, output=None):
 
     time_set = set(df["time"])
 
-    for time in time_set:
-        print(time)
-        if time < 0.2:
-            subset = df[df.time == time]
-            print("SMALL!!")
-            print(subset)
-            subset.plot.scatter(x=x, y="y", ax=ax, color="red",
-                                edgecolor="black", zorder=2, legend=False)
+    # Creating cycler
+    cycle = cycler("marker", [".", "|", "_", "+", "x"])
+    ax.set_prop_cycle(cycle)
 
+    timelabels = []
+    for time in sorted(time_set):
+        if time < 0.1:
+            subset = df[df.time == time]
+            label = "$T = " + str(round(time, SIGNIFICANT_DIGITS)) + "$"
+            subset.plot(x=x, y="y", ax=ax, color="black", linewidth=0, markeredgecolor="black", markersize=10,
+                        zorder=2, label=label)
+            timelabels.append(label)
     # Plotting the dataframe
     df.plot.scatter(x=x, y="y", ax=ax, color="none",
                     edgecolor="black", zorder=2, label="MPM-FVM")
@@ -362,12 +372,23 @@ def udaplot(x, y, uda, output=None):
     ax.set_ylabel(ylabel)
 
     # Adding annotations
-    annotate(plt, timeseries, df)
+    annotate(plt, timeseries, df, maxtime=0.1)
 
     # Adding legend
-    plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
+    handles, labels = ax.get_legend_handles_labels()
+    legend_handles = []
+    time_handles = []
+    for handle, label in zip(handles, labels):
+        if label not in timelabels:
+            legend_handles.append(handle)
+        else:
+            time_handles.append(handle)
 
-    # df.to_clipboard(excel=True)
+    time_legend = plt.legend(handles=time_handles, loc=(0.7, 0.025))
+    ax = plt.gca().add_artist(time_legend)
+
+    plt.legend(handles=legend_handles, loc=(0.25, 0.025))
+    #    bbox_to_anchor=(0.7, 0), loc=5)
 
     if (output):
         if (len(output) == 1):
