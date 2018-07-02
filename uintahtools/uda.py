@@ -21,6 +21,7 @@ class Uda:
     def __init__(self, uda, timesteps=None, every=None, samples=None):
         self.uda = uda
         self.timesteps = self.get_timesteps(timesteps, every, samples)
+        self.timeseries = timesteps
 
     def __str__(self):
         return self.uda

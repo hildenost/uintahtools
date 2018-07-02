@@ -21,7 +21,7 @@ sns.set(color_codes=True)
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
-from uintahtools.dataframe import UdaDataFrame
+from uintahtools.dataframe import UdaPlot
 from uintahtools.settings import Settings
 from uintahtools.uda import Uda
 from uintahtools.terzaghi.terzaghi import terzaghi
@@ -356,6 +356,43 @@ def plot_consolidation_curves(x, y, udapath, output):
     display_plot(plt, udapath, output)
 
 
+def plot_consolidation_curves_dev(x, y, output, uda):
+    df = dataframe_create(x, y, uda.uda, uda.timesteps)
+
+    udaplot = UdaPlot(df, uda, "terzaghi_timesteps")
+
+    fig = plt.figure(figsize=FIGSIZE)
+    ax = fig.add_subplot(111)
+
+    # Plotting the reference solution
+    plot_analytical(terzaghi, ax, uda.timeseries)
+
+    # Plotting the dataframe
+    df.plot.scatter(x=x, y="y", ax=ax, color="none",
+                    edgecolor="black", zorder=2, label="MPM-FVM")
+
+    # Removing plot frame
+    for side in {'right', 'top'}:
+        ax.spines[side].set_visible(False)
+
+    ax.set_xbound(lower=0)
+    ax.set_ybound(lower=0, upper=1)
+
+    # Adding labels
+    xlabel = "Normalized pore pressure $p/p_0$"
+    ylabel = "Normalized depth $z/H$"
+    ax.set_xlabel(xlabel)
+    ax.set_ylabel(ylabel)
+
+    # Adding annotations
+    annotate(plt, uda.timeseries, df)
+
+    # Adding legend
+    plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
+
+    display_plot(plt, uda.uda, output)
+
+
 def display_plot(plt, uda, output):
     if (output):
         if (len(output) == 1):
@@ -387,21 +424,18 @@ def udaplot(x, y, udapath, output=None):
     """
     print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
 
-    df = UdaDataFrame()
-    # if (x, y) == ("p.porepressure", "p.x"):
-    #     # Terzaghi consolidation curves
-    #     # Check settings. We need a path to the Uintah executable
+    if (x, y) == ("p.porepressure", "p.x"):
+        # Terzaghi consolidation curves
+        # Check settings. We need a path to the Uintah executable
 
-    #     key = "terzaghi_timesteps"
-    #     settings = Settings()
-    #     settings.configure(key, override=False)
+        key = "terzaghi_timesteps"
+        settings = Settings()
+        settings.configure(key, override=False)
+        uda = Uda(udapath, settings[key])
 
-    #     uda = Uda(udapath, settings[key])
-
-    #     print("Creating uda object:", uda)
-    #     print(uda.timesteps)
-
-    # exit()
+        plot_consolidation_curves_dev(x, y, output, uda)
+        uda.display_plot(output)
+    exit()
 
     if y == "time":
         print("Printing variable ", x, " vs ", y)
