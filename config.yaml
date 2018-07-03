@@ -1,7 +1,7 @@
 # Configuration file for package uintahtools
 
 uintahpath: /home/hilde/trunk/opt/StandAlone/sus
-terzaghi_timesteps:
+terzaghi:
 - 0.001
 - 0.005
 - 0.01

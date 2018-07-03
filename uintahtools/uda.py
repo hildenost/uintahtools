@@ -38,16 +38,6 @@ class Uda:
                             re.MULTILINE)
         return {int(timestep): float(simtime) for timestep, simtime in result}
 
-    def display_plot(self, output):
-        if (output):
-            if (len(output) == 1):
-                outfile = self.uda.swap_extension("pdf")
-            else:
-                outfile = output[1]
-            plt.savefig(outfile, dpi=300)
-        else:
-            plt.show()
-
     def get_timesteps(self, timesteps=None, every=None, samples=None):
         """Generate a list of timestep indices.
 

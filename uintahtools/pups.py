@@ -21,7 +21,7 @@ sns.set(color_codes=True)
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
-from uintahtools.dataframe import UdaPlot
+from uintahtools.udaplot import UdaPlot, TerzaghiPlot
 from uintahtools.settings import Settings
 from uintahtools.uda import Uda
 from uintahtools.terzaghi.terzaghi import terzaghi
@@ -314,96 +314,6 @@ def generate_timedict(uda):
         cmd_run([PUDA, "-timesteps", uda])).values())
 
 
-def plot_consolidation_curves(x, y, udapath, output):
-    timeseries = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
-
-    timesteps = timesteps_get(
-        times=timeseries,
-        timedict=generate_timedict(udapath)
-    )
-
-    df = dataframe_create(x, y, udapath, timesteps)
-
-    fig = plt.figure(figsize=FIGSIZE)
-    ax = fig.add_subplot(111)
-
-    # Plotting the reference solution
-    plot_analytical(terzaghi, ax, timeseries)
-
-    # Plotting the dataframe
-    df.plot.scatter(x=x, y="y", ax=ax, color="none",
-                    edgecolor="black", zorder=2, label="MPM-FVM")
-
-    # Removing plot frame
-    for side in {'right', 'top'}:
-        ax.spines[side].set_visible(False)
-
-    ax.set_xbound(lower=0)
-    ax.set_ybound(lower=0, upper=1)
-
-    # Adding labels
-    xlabel = "Normalized pore pressure $p/p_0$"
-    ylabel = "Normalized depth $z/H$"
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-
-    # Adding annotations
-    annotate(plt, timeseries, df)
-
-    # Adding legend
-    plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
-
-    display_plot(plt, udapath, output)
-
-
-def plot_consolidation_curves_dev(x, y, output, uda):
-    df = dataframe_create(x, y, uda.uda, uda.timesteps)
-
-    udaplot = UdaPlot(df, uda, "terzaghi_timesteps")
-
-    fig = plt.figure(figsize=FIGSIZE)
-    ax = fig.add_subplot(111)
-
-    # Plotting the reference solution
-    plot_analytical(terzaghi, ax, uda.timeseries)
-
-    # Plotting the dataframe
-    df.plot.scatter(x=x, y="y", ax=ax, color="none",
-                    edgecolor="black", zorder=2, label="MPM-FVM")
-
-    # Removing plot frame
-    for side in {'right', 'top'}:
-        ax.spines[side].set_visible(False)
-
-    ax.set_xbound(lower=0)
-    ax.set_ybound(lower=0, upper=1)
-
-    # Adding labels
-    xlabel = "Normalized pore pressure $p/p_0$"
-    ylabel = "Normalized depth $z/H$"
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-
-    # Adding annotations
-    annotate(plt, uda.timeseries, df)
-
-    # Adding legend
-    plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
-
-    display_plot(plt, uda.uda, output)
-
-
-def display_plot(plt, uda, output):
-    if (output):
-        if (len(output) == 1):
-            outfile = swap_uda_extension(uda, "pdf")
-        else:
-            outfile = output[1]
-        plt.savefig(outfile, dpi=300)
-    else:
-        plt.show()
-
-
 def udaplot(x, y, udapath, output=None):
     """Module pups main plotting function.
 
@@ -425,57 +335,56 @@ def udaplot(x, y, udapath, output=None):
     print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
 
     if (x, y) == ("p.porepressure", "p.x"):
-        # Terzaghi consolidation curves
-        # Check settings. We need a path to the Uintah executable
-
-        key = "terzaghi_timesteps"
-        settings = Settings()
-        settings.configure(key, override=False)
-        uda = Uda(udapath, settings[key])
-
-        plot_consolidation_curves_dev(x, y, output, uda)
-        uda.display_plot(output)
-    exit()
-
-    if y == "time":
-        print("Printing variable ", x, " vs ", y)
-
-        # New dataframe for selected depths.
-        # Collects depth, porepressure and time.
-        # Time on x-axis, porepressure on y.
-        # ys = timesteps_get(ysamples, df["y"])
-        # dfs = [dataframe_assemble(var, ys, uda) for var in (x, y)]
-        # print(dfs)
-        # df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
-
-        # PARTEXTRACT -partvar p.porepressure -partid PARTID uda
-        # partids = get_particleIDs(uda)
-        # print(partids)
-
-        # dfs = [get_particle_outputs(uda, x, partid) for partid in partids]
-
-        # fig, ax = plt.subplots()
-        # plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
-        # for df in dfs:
-        #     df[x] = df[x].map(lambda t: normalize(t, varmax=1e4))
-        #     df.plot(use_index=True, y=x,
-        #             ax=ax,
-        #             linewidth=0.4,
-        #             grid=True,
-        #             # c="gray",
-        #             # alpha=0.5,
-        #             # logx=True,
-        #             ylim=(0, 1))
-        # plt.show()
-        # Fixed for now
-        # Hent alltid ut min og max
-        # That's how it should be done.
-        # So need a function to retrieve the partid of particles at specified
-        # depth. I cannot make sense of lineextract
-        # Success!!
-        # LINEEXTRACT -v p.porepressure -istart 3 0 0 -iend 3 40 0 -uda uda
-        # lineextract(uda)
-        # print(df)
-
+        key = "terzaghi"
+    elif (x, y) == ("p.porepressure", "time"):
+        key = "terzaghi_time"
     else:
-        plot_consolidation_curves(x, y, udapath, output)
+        print("Plot type not recognized.")
+        exit()
+
+    settings = Settings()
+    settings.configure(key, override=False)
+    uda = Uda(udapath, settings[key])
+
+    df = dataframe_create(x, y, uda.uda, uda.timesteps)
+
+    udaplot = UdaPlot.create(key, df, uda)
+    udaplot.plot()
+    udaplot.display_plot(output)
+
+    # New dataframe for selected depths.
+    # Collects depth, porepressure and time.
+    # Time on x-axis, porepressure on y.
+    # ys = timesteps_get(ysamples, df["y"])
+    # dfs = [dataframe_assemble(var, ys, uda) for var in (x, y)]
+    # print(dfs)
+    # df = pd.merge(*dfs).filter(selected+["time"]).drop_duplicates(selected+["time"])
+
+    # PARTEXTRACT -partvar p.porepressure -partid PARTID uda
+    # partids = get_particleIDs(uda)
+    # print(partids)
+
+    # dfs = [get_particle_outputs(uda, x, partid) for partid in partids]
+
+    # fig, ax = plt.subplots()
+    # plot_analytical(terzaghi, ax, zs=partids.values(), time=True)
+    # for df in dfs:
+    #     df[x] = df[x].map(lambda t: normalize(t, varmax=1e4))
+    #     df.plot(use_index=True, y=x,
+    #             ax=ax,
+    #             linewidth=0.4,
+    #             grid=True,
+    #             # c="gray",
+    #             # alpha=0.5,
+    #             # logx=True,
+    #             ylim=(0, 1))
+    # plt.show()
+    # Fixed for now
+    # Hent alltid ut min og max
+    # That's how it should be done.
+    # So need a function to retrieve the partid of particles at specified
+    # depth. I cannot make sense of lineextract
+    # Success!!
+    # LINEEXTRACT -v p.porepressure -istart 3 0 0 -iend 3 40 0 -uda uda
+    # lineextract(uda)
+    # print(df)
