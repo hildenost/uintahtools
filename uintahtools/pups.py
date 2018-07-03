@@ -21,10 +21,9 @@ sns.set(color_codes=True)
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
-from uintahtools.udaplot import UdaPlot, TerzaghiPlot
+from uintahtools.udaplot import UdaPlot
 from uintahtools.settings import Settings
 from uintahtools.uda import Uda
-from uintahtools.terzaghi.terzaghi import terzaghi
 
 # Creating global variable PUDA
 yaml = YAML()
@@ -90,42 +89,6 @@ def cmd_run(cmd):
     return subprocess.run(
         cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
         check=True).stdout.decode("utf-8")
-
-
-def timesteps_parse(output):
-    """Parse timesteps, return a dict of {timestep: simtime}."""
-    result = re.findall("(?P<timestep>\d+): (?P<simtime>.*)", output,
-                        re.MULTILINE)
-    return {int(timestep): float(simtime) for timestep, simtime in result}
-
-
-def timesteps_get(timedict, times=None, every=None, samples=None):
-    """Generate a list of timestep indices.
-
-    If a list of timesteps is provided, return the index of the best-fitting timestep.
-    If instead the caller wants every nth timestep, the list of timesteps is
-    generated from the frequency.
-    If the caller wants a total of N samples, the list of timesteps returned contains
-    N + 1 timesteps, to include the very first timestep.
-
-    """
-
-    if samples is not None:
-        stride = len(timedict) // samples
-        return [str(i) for i in range(0, len(timedict), stride)]
-    elif every is not None:
-        max_time_index = len(timedict) - 1
-        indices = [str(i) for i in range(0, max_time_index, every)]
-
-        # Inclusive interval: including the maximum time step index,
-        # even when it does not fit with the stride
-        if not str(max_time_index) in indices:
-            indices.append(str(max_time_index))
-
-        return indices
-    elif times is not None:
-        idx = np.searchsorted(timedict, times)
-        return [str(i) for i in idx] if isinstance(times, list) else [str(idx)]
 
 
 def extracted(variable, uda, timestep):
@@ -240,78 +203,12 @@ def dataframe_create(x, y, uda, timesteps):
     return df
 
 
-def plot_analytical(func,
-                    ax,
-                    timeseries=[],
-                    zs=[],
-                    samples=40,
-                    maxj=15,
-                    time=False):
-    """Compute and plot analytical solution.
-
-    Two options:
-        1.  porepressure vs depth (z)
-        2.  porepressure vs time (t)
-
-    """
-    add_to_plot = partial(
-        ax.plot, color="red", linestyle="solid", linewidth=0.4)
-    if not zs:
-        zs = [z / samples for z in range(samples + 1)]
-    if not timeseries:
-        timeseries = np.logspace(-5, 1, num=samples)
-    if time:
-        for z in zs:
-            pores = [func(t, z, maxj) for t in timeseries]
-            add_to_plot(timeseries, pores)
-    else:
-        legend_entry = False
-        for timefactor in timeseries:
-            pores = [func(timefactor, z, maxj) for z in zs]
-
-            if legend_entry:
-                add_to_plot(pores, zs)
-            else:
-                add_to_plot(pores, zs, label="analytical")
-                legend_entry = True
-
-
 def variablelist(uda):
     """Return a dict of tracked variables and their types."""
     result = re.findall(
         "(?P<varname>[pg]\..+): (?:Particle|NC)Variable<(?P<vartype>.*)>",
         cmd_run([PUDA, "-listvariables", uda]), re.MULTILINE)
     return dict(result)
-
-
-def annotate(plt, timeseries, df):
-    """Annotate the isochrones."""
-    # Creating labels
-    pos = [(0.22, 0.15),
-           (0.27, 0.25),
-           (0.51, 0.33),
-           (0.655, 0.34),
-           (0.87, 0.35),
-           (0.87, 0.5),
-           (0.87, 0.6),
-           (0.87, 0.7),
-           (0.8, 0.85)
-           ]
-    for i, time in enumerate(reversed(timeseries)):
-        label = "$T = " + str(time) + "$"
-        plt.figtext(*pos[i], label, horizontalalignment="left")
-
-    return
-
-
-def swap_uda_extension(uda, ext):
-    """Uda results are in a folder, so in-built functions are of no use."""
-    return ".".join((uda.split(".")[0], ext))
-
-
-def generate_timedict(uda):
-    return sorted(timesteps_parse(
-        cmd_run([PUDA, "-timesteps", uda])).values())
 
 
 def udaplot(x, y, udapath, output=None):
