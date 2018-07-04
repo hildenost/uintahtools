@@ -1,7 +1,7 @@
 """Simple plotting script for Plotting outputs from UPSes.
 
 Provide the x variable and the y variable to be plotted along with the uda-folder
-to make a simple 2D scatter plot with matplotlib. Output points are also stored in 
+to make a simple 2D scatter plot with matplotlib. Output points are also stored in
 a dat-file.
 
 """
@@ -16,10 +16,14 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
+import seaborn as sns
+sns.set(color_codes=True)
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
-from uintahtools.terzaghi.terzaghi import terzaghi
+from uintahtools.udaplot import UdaPlot
+from uintahtools.settings import Settings
+from uintahtools.uda import Uda
 
 # Creating global variable PUDA
 yaml = YAML()
@@ -28,6 +32,8 @@ PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 PARTEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "partextract"])
 LINEEXTRACT = "/".join([os.path.dirname(load['uintahpath']), "lineextract"])
 
+FIGSIZE = (5, 3.8)
+
 
 def header(var):
     """Create column headers based on extracted variable."""
@@ -35,10 +41,14 @@ def header(var):
     headers = {
         "p.x": ["x", "y", "z"],
         "p.porepressure": ["p.porepressure"],
+        "p.stress": ["sigma11", "sigma12", "sigma13",
+                     "sigma21", "sigma22", "sigma23",
+                     "sigma31", "sigma32", "sigma33"]
     }
     if var not in headers:
-        print("Sorry, the variable {var} is not implemented yet. No headers assigned for {var}".format(
-            var=var))
+        print(
+            "Sorry, the variable {var} is not implemented yet. No headers assigned for {var}".
+            format(var=var))
         return fixedcols + [var]
     return fixedcols + headers[var]
 
@@ -66,29 +76,19 @@ def cmd_make(var, uda, timestep=None):
     if timestep:
         if not isinstance(timestep, list):
             timestep = [timestep]
-        cmdargs.extend(["-timesteplow", str(min(timestep)),
-                        "-timestephigh", str(max(timestep))])
+        cmdargs.extend([
+            "-timesteplow",
+            str(min(timestep)), "-timestephigh",
+            str(max(timestep))
+        ])
     return [PUDA, *cmdargs, uda]
 
 
 def cmd_run(cmd):
     """Shortcut for the long and winding subprocess call output decoder."""
-    return subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True).stdout.decode("utf-8")
-
-
-def timesteps_parse(output):
-    """Parse timesteps, return a dict of {timestep: simtime}."""
-    result = re.findall(
-        "(?P<timestep>\d+): (?P<simtime>.*)",
-        output,
-        re.MULTILINE)
-    return {int(timestep): float(simtime) for timestep, simtime in result}
-
-
-def timesteps_get(timedict, times=None, frequency=None):
-    """For a given list of times, return the index of the best-fitting timestep."""
-    idx = np.searchsorted(timedict, times)
-    return [str(i) for i in idx] if isinstance(times, list) else [str(idx)]
+    return subprocess.run(
+        cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        check=True).stdout.decode("utf-8")
 
 
 def extracted(variable, uda, timestep):
@@ -106,13 +106,14 @@ def get_particle_outputs(uda, var, partid):
     """Create dataframe of time vs porepressure at given depth."""
     cmd = [PARTEXTRACT, "-partvar", var, "-partid", partid, uda]
     output = cmd_run(cmd)
-    result = pd.read_table(StringIO(output),
-                           header=None,
-                           names=header(var),
-                           index_col="time",
-                           skiprows=2,
-                           sep="\s+",
-                           usecols=["time", "partId", var])
+    result = pd.read_table(
+        StringIO(output),
+        header=None,
+        names=header(var),
+        index_col="time",
+        skiprows=2,
+        sep="\s+",
+        usecols=["time", "partId", var])
     return result
 
 
@@ -120,12 +121,13 @@ def get_particleposes(uda):
     """Return a dataframe of particleID y where duplicates of y is dropped."""
     cmd = [PARTEXTRACT, "-partvar", "p.x", "-timestep", "0", uda]
     output = cmd_run(cmd)
-    result = pd.read_table(StringIO(output),
-                           header=None,
-                           names=header("p.x"),
-                           index_col="partId",
-                           skiprows=2,
-                           sep="\s+").drop_duplicates("y").filter(["y"])
+    result = pd.read_table(
+        StringIO(output),
+        header=None,
+        names=header("p.x"),
+        index_col="partId",
+        skiprows=2,
+        sep="\s+").drop_duplicates("y").filter(["y"])
     return result
 
 
@@ -153,11 +155,12 @@ def lineextract(uda):
     cmd = [LINEEXTRACT, "-v", "p.porepressure", "-startPt",
            x, y[0], z, "-endPt", x, y[1], z, "-uda", uda]
     output = cmd_run(cmd)
-    result = pd.read_table(StringIO(output),
-                           header=None,
-                           names=header("p.porepressure"),
-                           skiprows=4,
-                           sep="\s+")
+    result = pd.read_table(
+        StringIO(output),
+        header=None,
+        names=header("p.porepressure"),
+        skiprows=4,
+        sep="\s+")
     print(result)
 
 
@@ -167,11 +170,11 @@ def dataframe_assemble(variable, timesteps, uda):
     def table_read(variable, uda, timestep):
         """Wrapping pd.read_table for readability."""
         result = extracted(variable, uda, timestep)
-        return pd.read_table(result,
-                             header=None,
-                             names=header(variable),
-                             skiprows=2,
-                             sep="\s+") if result is not None else pd.DataFrame(columns=header(variable))
+        return pd.read_table(
+            result, header=None, names=header(variable), skiprows=2,
+            sep="\s+") if result is not None else pd.DataFrame(
+                columns=header(variable))
+
     dfs = (table_read(variable, uda, timestep) for timestep in timesteps)
     return pd.concat(dfs)
 
@@ -184,84 +187,31 @@ def dataframe_create(x, y, uda, timesteps):
 
     """
     settings = {
-        "y": {'flip': False, 'offset': 1},
-        x: {'varmax': 1e4},
+        "y": {
+            'flip': False
+        },
+        x: {
+            'varmax': -1e4
+        },
     }
 
     dfs = [dataframe_assemble(var, timesteps, uda) for var in (x, y)]
-    df = pd.merge(*dfs).filter([x, "y", "time"]
-                               ).drop_duplicates([x, "y", "time"])
+    df = pd.merge(*dfs).filter([x, "y",
+                                "time"]).drop_duplicates([x, "y", "time"])
     for col in (x, "y"):
         df[col] = df[col].map(lambda t: normalize(t, **settings[col]))
     return df
-
-
-def plot_analytical(func, ax, timeseries=[], zs=[], samples=40, maxj=50, time=False):
-    """Compute and plot analytical solution.
-
-    Two options:
-        1.  porepressure vs depth (z)
-        2.  porepressure vs time (t)
-
-    """
-    add_to_plot = partial(ax.plot,  color="gray", alpha=0.8,
-                          linestyle="solid", linewidth=2, zorder=1)
-    if not zs:
-        zs = [z / samples for z in range(samples + 1)]
-    if not timeseries:
-        timeseries = np.logspace(-5, 1, num=samples)
-    if time:
-        for z in zs:
-            pores = [func(t, z, maxj) for t in timeseries]
-            add_to_plot(timeseries, pores)
-    else:
-        legend_entry = False
-        for timefactor in timeseries:
-            pores = [func(timefactor, z, maxj) for z in zs]
-
-            if legend_entry:
-                add_to_plot(pores, zs)
-            else:
-                add_to_plot(pores, zs, label="analytical")
-                legend_entry = True
 
 
 def variablelist(uda):
     """Return a dict of tracked variables and their types."""
     result = re.findall(
         "(?P<varname>[pg]\..+): (?:Particle|NC)Variable<(?P<vartype>.*)>",
-        cmd_run([PUDA, "-listvariables", uda]),
-        re.MULTILINE
-    )
+        cmd_run([PUDA, "-listvariables", uda]), re.MULTILINE)
     return dict(result)
 
 
-def annotate(plt, timeseries, df):
-    """Annotate the isochrones."""
-    # Creating labels
-    pos = [(0.22, 0.15),
-           (0.27, 0.25),
-           (0.51, 0.33),
-           (0.655, 0.34),
-           (0.87, 0.35),
-           (0.87, 0.5),
-           (0.87, 0.6),
-           (0.87, 0.7),
-           (0.8, 0.85)
-           ]
-    for i, time in enumerate(reversed(timeseries)):
-        label = "$T = " + str(time) + "$"
-        plt.figtext(*pos[i], label, horizontalalignment="left")
-
-    return
-
-
-def swap_uda_extension(uda, ext):
-    """Uda results are in a folder, so in-built functions are of no use."""
-    return ".".join((uda.split(".")[0], ext))
-
-
-def udaplot(x, y, uda, output, compare):
+def udaplot(x, y, udapath, output=None, compare=False):
     """Module pups main plotting function.
 
     From a given set of timepoints, the provided variables are extracted
@@ -274,83 +224,39 @@ def udaplot(x, y, uda, output, compare):
         [ ] Listing the variables this uda has tracked
         [ ] If no variables provided, interactively choose
             [ ] Tab completion
-        [ ] Plot labels
-            [ ] Labels on the time series
         [ ] Make p-q-p_w-plot
             [ ] For given particles
             [ ] For all particles
 
     """
-    print("Plotting x:", x, " vs  y:", y, " contained in ", uda)
+    print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
 
-    if compare and len(uda) > 1:
-        print("Comparing ", len(uda))
-        uda2 = uda[1]
+    # if compare and len(uda) > 1:
+    #     print("Comparing ", len(uda))
+    #     uda2 = uda[1]
+    # else:
+    #     compare = False
+    udapath = udapath[0]
+    # print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
+
+    if (x, y) == ("p.porepressure", "p.x"):
+        key = "terzaghi"
+    elif (x, y) == ("p.porepressure", "time"):
+        key = "terzaghi_time"
     else:
-        compare = False
-    uda = uda[0]
+        print("Plot type not recognized.")
+        exit()
 
-    timeseries = [0.001, 0.005, 0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1]
+    settings = Settings()
+    settings.configure(key, override=False)
 
-    timesteps = timesteps_get(
-        times=timeseries,
-        timedict=sorted(timesteps_parse(
-            cmd_run([PUDA, "-timesteps", uda])).values())
-    )
+    uda = Uda(udapath, settings[key])
 
-    df = dataframe_create(x, y, uda, timesteps)
+    df = dataframe_create(x, y, uda.uda, uda.timesteps)
 
-    fig = plt.figure(figsize=(5, 3.8))
-    ax = fig.add_subplot(111)
-
-    # Plotting the reference solution
-    plot_analytical(terzaghi, ax, timeseries)
-
-    # Plotting the dataframe
-    df.plot.scatter(x=x, y="y", ax=ax, color="none",
-                    edgecolor="black", zorder=4, label="MPM-FVM 40 cells")
-
-    # Plotting the additional uda
-    if compare:
-        timesteps = timesteps_get(
-            times=timeseries,
-            timedict=sorted(timesteps_parse(
-                cmd_run([PUDA, "-timesteps", uda])).values())
-        )
-
-        df2 = dataframe_create(x, y, uda2, timesteps)
-        df2.plot.scatter(x=x, y="y", ax=ax, color="black", marker="o",
-                         edgecolor="black", zorder=5, label="MPM-FVM 10 cells")
-
-    # Removing plot frame
-    for side in {'right', 'top'}:
-        ax.spines[side].set_visible(False)
-
-    ax.set_xbound(lower=0)
-    ax.set_ybound(lower=0, upper=1)
-
-    # Adding labels
-    xlabel = "Normalized pore pressure $p/p_0$"
-    ylabel = "Normalized depth $z/H$"
-    ax.set_xlabel(xlabel)
-    ax.set_ylabel(ylabel)
-
-    # Adding annotations
-    annotate(plt, timeseries, df)
-
-    # Adding legend
-    plt.legend(bbox_to_anchor=(0.85, 0), loc=4)
-
-    # df.to_clipboard(excel=True)
-
-    if (output):
-        if (output == "std"):
-            outfile = swap_uda_extension(uda, "pdf")
-        else:
-            outfile = output
-        plt.savefig(outfile, dpi=300)
-    else:
-        plt.show()
+    udaplot = UdaPlot.create(key, df, uda)
+    udaplot.plot()
+    udaplot.display_plot(output)
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.

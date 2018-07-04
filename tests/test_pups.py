@@ -2,7 +2,7 @@
 
 import pytest
 
-from uintahtools.pups import *
+from uintahtools.pups import normalize, header, timesteps_parse, cmd_run, cmd_make, timesteps_get, dataframe_assemble, variablelist, get_particleIDs
 
 # Tests for normalize function
 
@@ -30,9 +30,17 @@ def test_headers_for_px():
 
 
 def test_headers_for_pporepressure():
+<<<<<<< HEAD
+    assert header("p.porepressure") == [
+        "time", "patch", "matl", "partId", "p.porepressure"]
+
+||||||| merged common ancestors
+    assert header("p.porepressure") == ["time", "patch", "matl", "partId", "pw"]
+=======
     assert header("p.porepressure") == [
         "time", "patch", "matl", "partId", "pw"]
 
+>>>>>>> ebbafe216b4292619795a304bdfc775a97e1e21f
 
 def test_undefined_header():
     var = "p.undefined"
@@ -45,13 +53,34 @@ def test_undefined_header():
 def basics():
     puda = "/home/hilde/trunk/opt/StandAlone/puda"
     uda = "tests/test.uda"
-    return timesteps_parse(cmd_run([puda, "-timesteps", uda]))
+    return sorted(timesteps_parse(cmd_run([puda, "-timesteps", uda])).values())
 
 
 # # Tests for timesteps
 def test_get_timestep(basics):
     timedict = basics
     time = 0.013
+<<<<<<< HEAD
+    assert timesteps_get(timedict, times=time) == ["130"]
+
+
+def test_get_timestep_every_30000th_timestep(basics):
+    timedict = basics
+    f = 3000
+    assert timesteps_get(timedict, every=f) == [
+        "0", "3000", "6000", "9000", "10000"]
+
+
+def test_get_timestep_samplesize_10(basics):
+    timedict = basics
+    samplesize = 10
+    assert timesteps_get(timedict, samples=samplesize) == [
+        "0", "1000", "2000", "3000", "4000", "5000", "6000", "7000", "8000", "9000", "10000"
+    ]
+
+||||||| merged common ancestors
+    assert timesteps_get(time, timedict) == ["130"]
+=======
     assert timesteps_get(timedict, times=time) == ["130"]
 
 
@@ -61,18 +90,33 @@ def test_get_timestep_every_30000th_timestep(basics):
     assert timesteps_get(timedict, frequency=f) == [
         "1", "30000", "60001", "90001", "100001-"]
 
+>>>>>>> ebbafe216b4292619795a304bdfc775a97e1e21f
 
 def test_get_timestep_negative_time(basics):
     timedict = basics
     time = -0.1
+<<<<<<< HEAD
+    assert timesteps_get(timedict, time) == ["0"]
+
+||||||| merged common ancestors
+    assert timesteps_get(time, timedict) == ["0"]
+=======
     assert timesteps_get(timedict, time) == ["1"]
 
+>>>>>>> ebbafe216b4292619795a304bdfc775a97e1e21f
 
 def test_get_timestep_negative_time_in_list(basics):
     timedict = basics
     time = [-1, 1]
+<<<<<<< HEAD
+    assert timesteps_get(timedict, time) == ["0", "10000"]
+
+||||||| merged common ancestors
+    assert timesteps_get(time, timedict) == ["0", "10000"]
+=======
     assert timesteps_get(timedict, time) == ["1", "10000"]
 
+>>>>>>> ebbafe216b4292619795a304bdfc775a97e1e21f
 
 def test_get_timestep_times(basics):
     timedict = basics
@@ -142,9 +186,19 @@ def test_dataframe_make_shape(udas, basics):
 
 def test_particle_ids_samples(udas):
     __, uda = udas
+<<<<<<< HEAD
+    assert get_particleIDs(uda) == {
+        '167503724544': 0.98750000000000004,
+        '85899345920': 0.51249999999999996}
+||||||| merged common ancestors
+    assert get_particleIDs(uda) == {0: 0.0125,
+                        85899345920: 0.5125,
+                        167503724544: 0.9875}
+=======
     assert get_particleIDs(uda) == {0: 0.0125,
                                     85899345920: 0.5125,
                                     167503724544: 0.9875}
+>>>>>>> ebbafe216b4292619795a304bdfc775a97e1e21f
 
 # Testing the variablelist
 
@@ -152,6 +206,39 @@ def test_particle_ids_samples(udas):
 def test_variableslist(udas):
     __, uda = udas
     vardict = {"p.x": "Point",
+<<<<<<< HEAD
+               "p.volume": "double",
+               "p.temperature": "double",
+               "p.velocity": "Vector",
+               "p.particleID": "long64",
+               "p.stress": "Matrix3",
+               "p.externalforce": "Vector",
+               "g.mass": "double",
+               "p.deformationMeasure": "Matrix3",
+               "p.porepressure": "double"}
+    assert variablelist(uda) == vardict
+||||||| merged common ancestors
+            "p.color": "double",
+            "p.temperature": "double",
+            "p.velocity": "Vector",
+            "g.velocity": "Vector",
+            "p.particleID": "long64",
+            "p.stress": "Matrix3",
+            "p.externalforce": "Vector",
+            "g.internalforce": "Vector",
+            "g.externalforce": "Vector",
+            "g.mass": "double",
+            "p.deformationMeasure": "Matrix3",
+            "g.acceleration": "Vector",
+            "p.porepressure": "double",
+            "p.porepressure+": "double",
+            "g.internalfluidforce": "Vector",
+            "g.internaldragforce": "Vector",
+            "p.fluidvelocity": "Vector",
+            "g.fluidvelocity": "Vector",
+            "g.fluidacceleration": "Vector"}
+    assert variablelist(uda) == vardict
+=======
                "p.color": "double",
                "p.temperature": "double",
                "p.velocity": "Vector",
@@ -172,3 +259,4 @@ def test_variableslist(udas):
                "g.fluidvelocity": "Vector",
                "g.fluidacceleration": "Vector"}
     assert variablelist(uda) == vardict
+>>>>>>> ebbafe216b4292619795a304bdfc775a97e1e21f
