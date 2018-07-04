@@ -29,26 +29,27 @@ class UdaPlot:
         assert 0, "Bad shape creation: " + type
 
     def plot(self):
-        # fig = plt.figure(figsize=FIGSIZE)
-        # ax = fig.add_subplot(111)
+        fig = plt.figure(figsize=FIGSIZE)
+        ax = fig.add_subplot(111)
 
         # self.plot_analytical(ax)
-
-        print(self.df.head())
-        self.df.plot()
+        self.df.plot_df(ax)
         # self.df.plot_df()
 
         # Removing plot frame
         # for side in ('right', 'top'):
         #     ax.spines[side].set_visible(False)
 
-        # ax.set_xbound(lower=0)
+        ax.set_xbound(lower=0, upper=1)
         # ax.set_ybound(lower=0, upper=1)
 
-        # self.add_labels(ax)
+        self.add_labels(ax)
         # self.annotate()
 
-        # plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
+        self.add_legend()
+
+    def add_legend(self):
+        pass
 
     def add_labels(self, ax):
         xlabel, ylabel = self.labels()
@@ -82,6 +83,9 @@ class PorePressureMomentumPlot(UdaPlot):
         self.df = PorePressureMomentumFrame(uda)
         super(PorePressureMomentumPlot, self).__init__(uda)
 
+    def add_legend(self):
+        plt.legend(loc=0)
+
     def annotate(self):
         pass
 
@@ -91,6 +95,9 @@ class TerzaghiPlot(UdaPlot):
     def __init__(self, uda):
         super().__init__(uda)
         self.df = TerzaghiFrame(uda)
+
+    def add_legend(self):
+        plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
 
     def labels(self):
         xlabel = "Normalized pore pressure $p/p_0$"

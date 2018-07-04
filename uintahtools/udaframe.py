@@ -1,6 +1,7 @@
 """Module of all things dataframes."""
 from collections import namedtuple
 
+from cycler import cycler
 import pandas as pd
 
 
@@ -80,9 +81,15 @@ class PorePressureMomentumFrame(UdaFrame):
             return b * h * h * h / 12.0
 
     def plot_df(self, ax=None):
-        self.plot()
-        # .scatter(x=self.vars.vars.x.header, y=self.vars.vars.y.header,
-        #   ax=ax, color="none", edgecolor="black", zorder=2, label="MPM-FVM")
+        print(self.columns)
+        print(self.index)
+        mp_cycler = cycler("linestyle", ['-', '--', ':', '-.'])
+        ax.set_prop_cycle(mp_cycler)
+        self.plot.line(ax=ax, color="black",
+                       zorder=2, label="MPM-FVM")
+        for column in reversed(self.columns):
+            ax.fill_between(
+                x=self.index, y1=self[column], alpha=0.5, color="gray")
 
     def dataframe_create(self, uda):
         df = super().dataframe_create(uda)
