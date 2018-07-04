@@ -7,6 +7,7 @@ import pandas as pd
 import seaborn as sns
 sns.set_style("white")
 
+from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame, Variable
 from uintahtools.terzaghi.terzaghi import terzaghi
 
 
@@ -15,39 +16,39 @@ FIGSIZE = (5, 3.8)
 
 class UdaPlot:
 
-    def __init__(self, df, uda):
-        self.df = df
+    def __init__(self, uda):
         self.uda = uda
+        # self.df = UdaFrame(uda)
 
     @staticmethod
-    def create(type, df, uda):
+    def create(type, uda):
         if type == "terzaghi":
-            return TerzaghiPlot(df, uda)
+            return TerzaghiPlot(uda)
+        elif type == "porepressure_momentum":
+            return PorePressureMomentumPlot(uda)
         assert 0, "Bad shape creation: " + type
 
     def plot(self):
-        fig = plt.figure(figsize=FIGSIZE)
-        ax = fig.add_subplot(111)
+        # fig = plt.figure(figsize=FIGSIZE)
+        # ax = fig.add_subplot(111)
 
-        self.plot_analytical(ax)
+        # self.plot_analytical(ax)
 
-        self.plot_dataframe(self.df, ax)
+        print(self.df.head())
+        self.df.plot()
+        # self.df.plot_df()
 
         # Removing plot frame
-        for side in ('right', 'top'):
-            ax.spines[side].set_visible(False)
+        # for side in ('right', 'top'):
+        #     ax.spines[side].set_visible(False)
 
-        ax.set_xbound(lower=0)
-        ax.set_ybound(lower=0, upper=1)
+        # ax.set_xbound(lower=0)
+        # ax.set_ybound(lower=0, upper=1)
 
-        self.add_labels(ax)
-        self.annotate()
+        # self.add_labels(ax)
+        # self.annotate()
 
-        plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
-
-    def plot_dataframe(self, df, ax):
-        self.df.plot.scatter(x="p.porepressure", y="y", ax=ax, color="none",
-                             edgecolor="black", zorder=2, label="MPM-FVM")
+        # plt.legend(bbox_to_anchor=(0.7, 0), loc=4)
 
     def add_labels(self, ax):
         xlabel, ylabel = self.labels()
@@ -55,7 +56,7 @@ class UdaPlot:
         ax.set_ylabel(ylabel)
 
     def plot_analytical(self, ax):
-        raise NotImplementedError
+        pass
 
     def labels(self):
         xlabel, ylabel = "X", "Y"
@@ -75,7 +76,21 @@ class UdaPlot:
             plt.show()
 
 
+class PorePressureMomentumPlot(UdaPlot):
+
+    def __init__(self, uda):
+        self.df = PorePressureMomentumFrame(uda)
+        super(PorePressureMomentumPlot, self).__init__(uda)
+
+    def annotate(self):
+        pass
+
+
 class TerzaghiPlot(UdaPlot):
+
+    def __init__(self, uda):
+        super().__init__(uda)
+        self.df = TerzaghiFrame(uda)
 
     def labels(self):
         xlabel = "Normalized pore pressure $p/p_0$"

@@ -24,7 +24,6 @@ class Uda:
         self.uda = uda
         self.timesteps = self.get_timesteps(timesteps, every, samples)
         self.timeseries = timesteps
-
         self.key = key
 
     def __str__(self):

@@ -21,7 +21,6 @@ sns.set(color_codes=True)
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
-from uintahtools.udaframe import UdaFrame
 from uintahtools.udaplot import UdaPlot
 from uintahtools.settings import Settings
 from uintahtools.uda import Uda
@@ -255,15 +254,9 @@ def udaplot(x, y, udapath, output=None, compare=False):
 
     uda = Uda(udapath, key, settings[key])
 
-    print("Dataframe creating...")
-    df2 = UdaFrame(uda)
-    print("Dataframe instance: ", df2)
-    df = dataframe_create(x, y, uda.uda, uda.timesteps)
-    print("Dataframe created")
-
-    # udaplot = UdaPlot.create(key, df, uda)
-    # udaplot.plot()
-    # udaplot.display_plot(output)
+    udaplot = UdaPlot.create(key, uda)
+    udaplot.plot()
+    udaplot.display_plot(output)
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.
