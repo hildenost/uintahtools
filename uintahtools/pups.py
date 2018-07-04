@@ -261,9 +261,9 @@ def udaplot(x, y, udapath, output=None, compare=False):
     df = dataframe_create(x, y, uda.uda, uda.timesteps)
     print("Dataframe created")
 
-    udaplot = UdaPlot.create(key, df, uda)
-    udaplot.plot()
-    udaplot.display_plot(output)
+    # udaplot = UdaPlot.create(key, df, uda)
+    # udaplot.plot()
+    # udaplot.display_plot(output)
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.

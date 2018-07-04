@@ -25,12 +25,7 @@ class Uda:
         self.timesteps = self.get_timesteps(timesteps, every, samples)
         self.timeseries = timesteps
 
-        if (key == "terzaghi"):
-            self.x = "p.porepressure"
-            self.y = "y"
-        elif (key == "porepressure_momentum"):
-            self.x = "x"
-            self.y = "momentum"
+        self.key = key
 
     def __str__(self):
         return self.uda
