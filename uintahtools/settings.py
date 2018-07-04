@@ -29,7 +29,7 @@ class Settings:
             self.yaml.dump(self.settings, self.path)
 
     def input_instruction(self, key):
-        if key.find("time") > 0:
+        if key.find("time") > 0 or key.find("momentum") > 0:
             return "Enter list of times separated by space"
         else:
             return "Enter " + key + " to set"

@@ -2,6 +2,8 @@ import os
 import re
 import subprocess
 
+from io import StringIO
+
 import numpy as np
 from ruamel.yaml import YAML
 from pathlib import Path
@@ -18,13 +20,30 @@ PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 class Uda:
     """Class for manipulation of and data extraction from the Uintah result folder .uda/."""
 
-    def __init__(self, uda, timesteps=None, every=None, samples=None):
+    def __init__(self, uda, key, timesteps=None, every=None, samples=None):
         self.uda = uda
         self.timesteps = self.get_timesteps(timesteps, every, samples)
         self.timeseries = timesteps
 
+        if (key == "terzaghi"):
+            self.x = "p.porepressure"
+            self.y = "y"
+        elif (key == "porepressure_momentum"):
+            self.x = "x"
+            self.y = "momentum"
+
     def __str__(self):
         return self.uda
+
+    def extracted(self, variable, timestep):
+        """Extract the variable and wrap it in a stream."""
+        try:
+            process = cmd_run(cmd_make(variable, self.uda, timestep))
+        except subprocess.CalledProcessError:
+            print("The timestep {timestep} was not found in {uda}"
+                  " and was therefore ignored.".format(timestep=timestep, uda=self.uda))
+            return None
+        return StringIO(process)
 
     def swap_extension(self, extension):
         return ".".join((self.uda.split(".")[0], extension))

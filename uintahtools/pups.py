@@ -21,6 +21,7 @@ sns.set(color_codes=True)
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
+from uintahtools.udaframe import UdaFrame
 from uintahtools.udaplot import UdaPlot
 from uintahtools.settings import Settings
 from uintahtools.uda import Uda
@@ -243,6 +244,8 @@ def udaplot(x, y, udapath, output=None, compare=False):
         key = "terzaghi"
     elif (x, y) == ("p.porepressure", "time"):
         key = "terzaghi_time"
+    elif (x, y) == ("p.porepressure", "momentum"):
+        key = "porepressure_momentum"
     else:
         print("Plot type not recognized.")
         exit()
@@ -250,9 +253,13 @@ def udaplot(x, y, udapath, output=None, compare=False):
     settings = Settings()
     settings.configure(key, override=False)
 
-    uda = Uda(udapath, settings[key])
+    uda = Uda(udapath, key, settings[key])
 
+    print("Dataframe creating...")
+    df2 = UdaFrame(uda)
+    print("Dataframe instance: ", df2)
     df = dataframe_create(x, y, uda.uda, uda.timesteps)
+    print("Dataframe created")
 
     udaplot = UdaPlot.create(key, df, uda)
     udaplot.plot()

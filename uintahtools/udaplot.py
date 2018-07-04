@@ -116,7 +116,8 @@ class TerzaghiPlot(UdaPlot):
         timeseries = self.uda.timeseries
 
         add_to_plot = partial(
-            ax.plot, color="gray", linestyle="solid", linewidth=4)
+            ax.plot, color="gray", alpha=0.8,
+            linestyle="solid", linewidth=2, zorder=1)
         if not zs:
             zs = [z / samples for z in range(samples + 1)]
         if not timeseries:

@@ -1,6 +1,13 @@
 # Configuration file for package uintahtools
 
 uintahpath: /home/hilde/trunk/opt/StandAlone/sus
+porepressure_momentum:
+- 0.001
+- 0.08
+- 0.26
+- 0.8
+- 1.0
+- 2.5
 terzaghi:
 - 0.001
 - 0.005
