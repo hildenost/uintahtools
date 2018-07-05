@@ -83,11 +83,14 @@ class PorePressureMomentumFrame(UdaFrame):
         mp_cycler = cycler("linestyle", ['-', '--', ':', '-.'])
         ax.set_prop_cycle(mp_cycler)
 
-        self.groupby("time").plot(x="x", y="momentum", ax=ax)
-        # , ax=ax, color="black",
-        #  zorder=2, label="MPM-FVM")
-        # ax.fill_between(
-        # x="x", y1="momentum", alpha=0.2, color="gray")
+        grouped = self.groupby("time")
+
+        for label, df in grouped:
+            df.plot(x="x", y="momentum", ax=ax,
+                    color="black",  zorder=2, label=str(round(label, 3)))
+
+            ax.fill_between(
+                x=df.x, y1=df.momentum, alpha=0.2, color="gray")
 
     def dataframe_create(self, uda):
         df = super().dataframe_create(uda)
@@ -95,14 +98,16 @@ class PorePressureMomentumFrame(UdaFrame):
 
         sections = self.initialize_group_sections(uda)
         momentum = self.compute_pore_pressure_momentum(sections, df)
+
+        # dropping the initial time step
+        momentum = momentum.ix[~(momentum.time < uda.timeseries[1])]
+
         return momentum
 
     @staticmethod
     def initialize_group_sections(uda):
         beam = PorePressureMomentumFrame.Beam(b=0.1, l=1.0, h=0.3, E=10e6)
         result = uda.extracted("p.x", uda.timesteps[0])
-
-        print(uda.timesteps)
 
         names = uda.vars.get_uda_headers("p.x")
         df = pd.read_table(
@@ -115,7 +120,6 @@ class PorePressureMomentumFrame(UdaFrame):
         def demean(y): return y - y_mean
         df["y"] = df["y"].apply(demean)
 
-        print(df)
         return df.groupby("x")
 
     @staticmethod
