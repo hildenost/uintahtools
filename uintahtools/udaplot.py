@@ -7,7 +7,8 @@ import pandas as pd
 import seaborn as sns
 sns.set_style("white")
 
-from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame, Variable
+from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame
+from uintahtools.uda import Variable
 from uintahtools.terzaghi.terzaghi import terzaghi
 
 
@@ -82,6 +83,26 @@ class PorePressureMomentumPlot(UdaPlot):
     def __init__(self, uda):
         self.df = PorePressureMomentumFrame(uda)
         super(PorePressureMomentumPlot, self).__init__(uda)
+
+    def plot(self):
+        fig = plt.figure(figsize=FIGSIZE)
+        ax = fig.add_subplot(111)
+
+        # self.plot_analytical(ax)
+        self.df.plot_df(ax)
+        # self.df.plot_df()
+
+        # Removing plot frame
+        # for side in ('right', 'top'):
+        #     ax.spines[side].set_visible(False)
+
+        ax.set_xbound(lower=0, upper=1)
+        # ax.set_ybound(lower=0, upper=1)
+
+        self.add_labels(ax)
+        # self.annotate()
+
+        self.add_legend()
 
     def add_legend(self):
         plt.legend(loc=0)

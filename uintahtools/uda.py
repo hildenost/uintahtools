@@ -2,6 +2,7 @@ import os
 import re
 import subprocess
 
+from collections import namedtuple
 from io import StringIO
 
 import numpy as np
@@ -25,6 +26,7 @@ class Uda:
         self.timesteps = self.get_timesteps(timesteps, every, samples)
         self.timeseries = timesteps
         self.key = key
+        self.vars = Variable(key)
 
     def __str__(self):
         return self.uda
@@ -79,6 +81,55 @@ class Uda:
         elif timesteps is not None:
             idx = np.searchsorted(timedict, timesteps)
             return [str(i) for i in idx] if isinstance(timesteps, list) else [str(idx)]
+
+
+class Variable():
+    fixedcols = ["time", "patch", "matl", "partId"]
+    headers = {
+        "p.x": ["x", "y", "z"],
+        "p.porepressure": ["p.porepressure"],
+        "p.stress": ["sigma11", "sigma12", "sigma13",
+                     "sigma21", "sigma22", "sigma23",
+                     "sigma31", "sigma32", "sigma33"]
+    }
+    Var = namedtuple("Var", ["udavar", "header", "settings"])
+    Vars = namedtuple("Vars", ["x", "y"])
+
+    def __init__(self, plottype):
+        if (plottype == "terzaghi"):
+            self.vars = self.TerzaghiVariables()
+        elif (plottype == "porepressure_momentum"):
+            self.vars = self.MomentumVariables()
+
+    def get_headers(self):
+        return [var.header for var in self.vars]
+
+    @staticmethod
+    def get_uda_headers(var):
+        if (isinstance(var, str)):
+            return Variable.fixedcols + Variable.headers[var]
+        return Variable.fixedcols + Variable.headers[var.udavar]
+
+    def __repr__(self):
+        return self.vars.__repr__()
+
+    def __iter__(self):
+        return self.vars.__iter__()
+
+    @staticmethod
+    def TerzaghiVariables():
+        xx = Variable.Var(udavar="p.porepressure",
+                          header="p.porepressure", settings={"varmax": -1e4})
+        yy = Variable.Var(udavar="p.x", header="y", settings={"flip": False})
+        return Variable.Vars(xx, yy)
+
+    @staticmethod
+    def MomentumVariables():
+        xx = Variable.Var(udavar="p.x",
+                          header="x", settings={})
+        yy = Variable.Var(udavar="p.porepressure",
+                          header="p.porepressure", settings={})
+        return Variable.Vars(xx, yy)
 
 
 def cmd_make(var, uda, timestep=None):

@@ -1,15 +1,13 @@
 """Module of all things dataframes."""
-from collections import namedtuple
-
 from cycler import cycler
 import pandas as pd
+import matplotlib.pyplot as plt
 
 
 class UdaFrame(pd.DataFrame):
 
     def __init__(self, uda):
         super().__init__()
-        self.vars = Variable(uda.key)
         df = self.dataframe_create(uda)
         super(UdaFrame, self).__init__(df)
 
@@ -20,9 +18,9 @@ class UdaFrame(pd.DataFrame):
         """Wrapping pd.read_table for readability."""
         result = uda.extracted(variable.udavar, timestep)
         return pd.read_table(
-            result, header=None, names=self.vars.get_uda_headers(variable), skiprows=2,
+            result, header=None, names=uda.vars.get_uda_headers(variable), skiprows=2,
             sep="\s+") if result is not None else pd.DataFrame(
-                columns=self.vars.get_uda_headers(variable))
+                columns=uda.vars.get_uda_headers(variable))
 
     def dataframe_assemble(self, variable, uda):
         """Create and return dataframe from extracting the variable at given timesteps from the UDA folder."""
@@ -47,8 +45,7 @@ class UdaFrame(pd.DataFrame):
 
         """
         dfs = [self.dataframe_assemble(var, uda)
-               for var in self.vars]
-
+               for var in uda.vars]
         return pd.merge(*dfs)
 
 
@@ -56,15 +53,17 @@ class TerzaghiFrame(UdaFrame):
     def dataframe_create(self, uda):
         df = super().dataframe_create(uda)
 
-        df = df.filter(self.vars.get_headers() +
-                       ["time"]).drop_duplicates(self.vars.get_headers() + ["time"])
-        for var in self.vars:
+        df = df.filter(uda.vars.get_headers() +
+                       ["time"]).drop_duplicates(uda.vars.get_headers() + ["time"])
+        for var in uda.vars:
             df[var.header] = df[var.header].map(
                 lambda t: self.normalize(t, **var.settings))
+
+        print(df.head())
         return df
 
     def plot_df(self, ax):
-        self.plot.scatter(x=self.vars.vars.x.header, y=self.vars.vars.y.header,
+        self.plot.scatter(x=self.uda.vars.vars.x.header, y=self.uda.vars.vars.y.header,
                           ax=ax, color="none", edgecolor="black", zorder=2, label="MPM-FVM")
 
 
@@ -81,31 +80,31 @@ class PorePressureMomentumFrame(UdaFrame):
             return b * h * h * h / 12.0
 
     def plot_df(self, ax=None):
-        print(self.columns)
-        print(self.index)
         mp_cycler = cycler("linestyle", ['-', '--', ':', '-.'])
         ax.set_prop_cycle(mp_cycler)
-        self.plot.line(ax=ax, color="black",
-                       zorder=2, label="MPM-FVM")
-        for column in reversed(self.columns):
-            ax.fill_between(
-                x=self.index, y1=self[column], alpha=0.5, color="gray")
+
+        self.groupby("time").plot(x="x", y="momentum", ax=ax)
+        # , ax=ax, color="black",
+        #  zorder=2, label="MPM-FVM")
+        # ax.fill_between(
+        # x="x", y1="momentum", alpha=0.2, color="gray")
 
     def dataframe_create(self, uda):
         df = super().dataframe_create(uda)
-        self.df = df.filter(["time", "partId", "p.porepressure"])
+        df = df.filter(["time", "partId", "p.porepressure"])
 
         sections = self.initialize_group_sections(uda)
-        momentum = self.compute_pore_pressure_momentum(sections)
-        return pd.DataFrame(data=momentum)
+        momentum = self.compute_pore_pressure_momentum(sections, df)
+        return momentum
 
     @staticmethod
     def initialize_group_sections(uda):
         beam = PorePressureMomentumFrame.Beam(b=0.1, l=1.0, h=0.3, E=10e6)
         result = uda.extracted("p.x", uda.timesteps[0])
 
-        names = Variable.get_uda_headers("p.x")
+        print(uda.timesteps)
 
+        names = uda.vars.get_uda_headers("p.x")
         df = pd.read_table(
             result, header=None, names=names, skiprows=2,
             sep="\s+") if result is not None else pd.DataFrame(
@@ -115,68 +114,24 @@ class PorePressureMomentumFrame(UdaFrame):
 
         def demean(y): return y - y_mean
         df["y"] = df["y"].apply(demean)
+
+        print(df)
         return df.groupby("x")
 
-    def compute_pore_pressure_momentum(self, grouped):
-        timegroup = self.df.groupby("time")
-        pressure_momentum = {}
+    @staticmethod
+    def compute_pore_pressure_momentum(grouped, df):
+        timegroup = df.groupby("time")
+        momentum = {"time": [], "x": [], "momentum": []}
         for time, data in timegroup:
-            pressure_momentum[time] = {}
             data.set_index(["partId"], inplace=True)
             for x, group in grouped:
                 group.set_index(["partId"], inplace=True)
-                pressure_momentum[time][x] = 0.0
+                mom = 0.0
                 for pId, row in group.iterrows():
-                    porepressure = data.get_value(pId, "p.porepressure")
+                    porepressure = data.at[pId, "p.porepressure"]
                     y = row["y"]
-                    pressure_momentum[time][x] -= porepressure * y
-        return pressure_momentum
-
-
-class Variable():
-    fixedcols = ["time", "patch", "matl", "partId"]
-    headers = {
-        "p.x": ["x", "y", "z"],
-        "p.porepressure": ["p.porepressure"],
-        "p.stress": ["sigma11", "sigma12", "sigma13",
-                     "sigma21", "sigma22", "sigma23",
-                     "sigma31", "sigma32", "sigma33"]
-    }
-    Var = namedtuple("Var", ["udavar", "header", "settings"])
-    Vars = namedtuple("Vars", ["x", "y"])
-
-    def __init__(self, plottype):
-        if (plottype == "terzaghi"):
-            self.vars = self.TerzaghiVariables()
-        elif (plottype == "porepressure_momentum"):
-            self.vars = self.MomentumVariables()
-
-    def get_headers(self):
-        return [var.header for var in self.vars]
-
-    @staticmethod
-    def get_uda_headers(var):
-        if (isinstance(var, str)):
-            return Variable.fixedcols + Variable.headers[var]
-        return Variable.fixedcols + Variable.headers[var.udavar]
-
-    def __repr__(self):
-        return self.vars.__repr__()
-
-    def __iter__(self):
-        return self.vars.__iter__()
-
-    @staticmethod
-    def TerzaghiVariables():
-        xx = Variable.Var(udavar="p.porepressure",
-                          header="p.porepressure", settings={"varmax": -1e4})
-        yy = Variable.Var(udavar="p.x", header="y", settings={"flip": False})
-        return Variable.Vars(xx, yy)
-
-    @staticmethod
-    def MomentumVariables():
-        xx = Variable.Var(udavar="p.x",
-                          header="x", settings={})
-        yy = Variable.Var(udavar="p.porepressure",
-                          header="p.porepressure", settings={})
-        return Variable.Vars(xx, yy)
+                    mom -= porepressure * y
+                momentum["time"].append(time)
+                momentum["x"].append(x)
+                momentum["momentum"].append(mom)
+        return pd.DataFrame(data=momentum)
