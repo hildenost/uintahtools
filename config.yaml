@@ -4,7 +4,7 @@ uintahpath: /home/hilde/trunk/opt/StandAlone/sus
 porepressure_momentum:
 - 0
 # - 0.02
-# - 0.08
+- 0.08
 - 0.26
 - 0.5
 - 1

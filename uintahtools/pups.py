@@ -10,7 +10,7 @@ import re
 import subprocess
 from functools import partial
 from io import StringIO
-from pathlib import Path
+from pathlib import Path, PurePath
 
 import numpy as np
 import pandas as pd
@@ -18,6 +18,7 @@ import matplotlib.pyplot as plt
 import matplotlib.colors as colors
 import seaborn as sns
 sns.set(color_codes=True)
+from lxml import etree
 from ruamel.yaml import YAML
 
 from uintahtools import CONFIG
@@ -227,6 +228,27 @@ def verify_path(path):
     return os.path.isdir(path)
 
 
+def has_index_xml(folder):
+    PurePath(folder).joinpath()
+    return os.path.exists(PurePath(folder).joinpath("index.xml"))
+
+
+def all_timesteps_exists(folder):
+    index = PurePath(folder).joinpath("index.xml")
+    print(index)
+    tree = etree.parse(index, etree.XMLParser(remove_blank_text=True))
+    print(tree.get("timesteps"))
+
+
+def is_folder_uda(folder):
+    # return has_index_xml(folder) and all_timesteps_exists(folder)
+    return "uda" in set(folder.split("."))
+
+
+def convert_folder_to_udapaths(folder):
+    return [folder + path for path in os.listdir(folder) if is_folder_uda(path)]
+
+
 def udaplot(x, y, udapaths, output=None, compare=False):
     """Module pups main plotting function.
 
@@ -264,6 +286,11 @@ def udaplot(x, y, udapaths, output=None, compare=False):
 
     # udapath = udapath[0]
     # print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
+
+    converted = []
+    if not is_folder_uda(udapaths[0]):
+        converted.extend(convert_folder_to_udapaths(udapaths[0]))
+        udapaths = converted
 
     settings = Settings()
     settings.configure(key, override=False)
