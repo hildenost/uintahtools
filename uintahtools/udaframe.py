@@ -75,9 +75,49 @@ class PorePressureMomentumFrame(UdaFrame):
             self.h = h
             self.E = E
             self.I = self.second_moment_of_area(b, h)
+            self.A = self.area(b, h)
+
+        def area(self, b, h):
+            return b * h
 
         def second_moment_of_area(self, b, h):
             return b * h * h * h / 12.0
+
+    @staticmethod
+    def insert_boundary_values(df, column, value):
+        """Inserting a row of predefined value at boundaries.
+
+        Boundaries are currently hardcoded to be at positions 0 and 1.
+
+        """
+        xmin = 0
+        xmax = 1
+
+        grouped = df.groupby("time")
+        temp = pd.DataFrame()
+        for __, group in grouped:
+            tmp = group.iloc[[0], :].copy()
+            tmp[column] = value
+
+            tmp["x"] = xmin
+            temp = temp.append(tmp, ignore_index=True)
+
+            tmp["x"] = xmax
+            temp = temp.append(tmp, ignore_index=True)
+
+        return pd.concat([df, temp], ignore_index=True).sort_values(
+            by=["time", "x"])
+
+    @staticmethod
+    def normalise_momentum(column, beam):
+        """Normalising the momentum along the beam.
+
+        norm_M = momentum * beam_length / (elastic_modulus * second_moment_of_area)
+        """
+        def norm_M(M):
+            return M * beam.l / (beam.E * beam.I) * beam.A
+
+        return column.apply(norm_M)
 
     def plot_df(self, ax=None):
         mp_cycler = cycler("linestyle", ['-', '--', ':', '-.'])
@@ -96,17 +136,22 @@ class PorePressureMomentumFrame(UdaFrame):
         df = super().dataframe_create(uda)
         df = df.filter(["time", "partId", "p.porepressure"])
 
-        sections = self.initialize_group_sections(uda)
+        beam = PorePressureMomentumFrame.Beam(b=0.1, l=1.0, h=0.3, E=10e6)
+
+        sections = self.initialize_group_sections(uda, beam)
         momentum = self.compute_pore_pressure_momentum(sections, df)
 
         # dropping the initial time step
         momentum = momentum.ix[~(momentum.time < uda.timeseries[1])]
 
+        momentum.momentum = self.normalise_momentum(momentum.momentum, beam)
+        momentum = self.insert_boundary_values(
+            momentum, "momentum", 0.0)
+
         return momentum
 
     @staticmethod
-    def initialize_group_sections(uda):
-        beam = PorePressureMomentumFrame.Beam(b=0.1, l=1.0, h=0.3, E=10e6)
+    def initialize_group_sections(uda, beam):
         result = uda.extracted("p.x", uda.timesteps[0])
 
         names = uda.vars.get_uda_headers("p.x")

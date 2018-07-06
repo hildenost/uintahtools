@@ -211,7 +211,23 @@ def variablelist(uda):
     return dict(result)
 
 
-def udaplot(x, y, udapath, output=None, compare=False):
+def verify_plot_options(x, y):
+    if (x, y) == ("p.porepressure", "p.x"):
+        return "terzaghi"
+    elif (x, y) == ("p.porepressure", "time"):
+        return "terzaghi_time"
+    elif (x, y) == ("p.porepressure", "momentum"):
+        return "porepressure_momentum"
+    else:
+        print("Plot type not recognized.")
+        exit()
+
+
+def verify_path(path):
+    return os.path.isdir(path)
+
+
+def udaplot(x, y, udapaths, output=None, compare=False):
     """Module pups main plotting function.
 
     From a given set of timepoints, the provided variables are extracted
@@ -229,34 +245,36 @@ def udaplot(x, y, udapath, output=None, compare=False):
             [ ] For all particles
 
     """
-    print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
+    print("Plotting x:", x, " vs  y:", y, " contained in ", udapaths)
 
     # if compare and len(uda) > 1:
     #     print("Comparing ", len(uda))
     #     uda2 = uda[1]
     # else:
     #     compare = False
-    udapath = udapath[0]
-    # print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
 
-    if (x, y) == ("p.porepressure", "p.x"):
-        key = "terzaghi"
-    elif (x, y) == ("p.porepressure", "time"):
-        key = "terzaghi_time"
-    elif (x, y) == ("p.porepressure", "momentum"):
-        key = "porepressure_momentum"
-    else:
-        print("Plot type not recognized.")
+    key = verify_plot_options(x, y)
+
+    paths = {path: verify_path(path) for path in udapaths}
+    if not all(list(paths.values())):
+        print("Some of your input paths are not valid:")
+        [print("\t{path}".format(
+            path=path)) for path in paths if not paths[path]]
         exit()
+
+    # udapath = udapath[0]
+    # print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
 
     settings = Settings()
     settings.configure(key, override=False)
 
-    uda = Uda(udapath, key, settings[key])
-
-    udaplot = UdaPlot.create(key, uda)
-    udaplot.plot()
-    udaplot.display_plot(output)
+    for udapath in udapaths:
+        print("Now plotting ", udapath, ". Please wait...")
+        uda = Uda(udapath, key, settings[key])
+        udaplot = UdaPlot.create(key, uda)
+        udaplot.plot()
+        print("Close figure window to get to next plot or quit.")
+        udaplot.display_plot(output)
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.
