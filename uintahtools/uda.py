@@ -28,8 +28,7 @@ class Uda:
         self.key = key
         self.vars = Variable(key)
 
-        if init:
-            print("Initial particle positions here: ", init)
+        self.udainit = Uda(init, key, timesteps=[0]) if init else None
 
     def __str__(self):
         return self.uda

@@ -152,7 +152,9 @@ class PorePressureMomentumFrame(UdaFrame):
         return momentum
 
     @staticmethod
-    def initialize_group_sections(uda, beam):
+    def initialize_group_sections(uda_incoming, beam):
+        uda = uda_incoming.udainit if uda_incoming.udainit else uda_incoming
+
         result = uda.extracted("p.x", uda.timesteps[0])
 
         names = uda.vars.get_uda_headers("p.x")
@@ -166,19 +168,27 @@ class PorePressureMomentumFrame(UdaFrame):
         def demean(y): return y - y_mean
         df["y"] = df["y"].apply(demean)
 
-        return df.groupby("x")
+        return df
 
     @staticmethod
-    def compute_pore_pressure_momentum(grouped, df):
+    def compute_pore_pressure_momentum(positiondf, df):
         timegroup = df.groupby("time")
+        positiongroup = positiondf.groupby("x")
+
         momentum = {"time": [], "x": [], "momentum": []}
+
         for time, data in timegroup:
             data.set_index(["partId"], inplace=True)
-            for x, group in grouped:
+            for x, group in positiongroup:
                 group.set_index(["partId"], inplace=True)
                 mom = 0.0
                 for pId, row in group.iterrows():
-                    porepressure = data.at[pId, "p.porepressure"]
+                    try:
+                        porepressure = data.at[pId, "p.porepressure"]
+                    except KeyError:
+                        print(
+                            "Particle ID {pId} not found in both dataframes.".format(pId=pId))
+                        exit()
                     y = row["y"]
                     mom -= porepressure * y
                 momentum["time"].append(time)
