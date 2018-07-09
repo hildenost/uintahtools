@@ -15,6 +15,7 @@ import cmd
 import os
 import re
 import shutil
+import signal
 import sys
 import subprocess
 from pathlib import Path
@@ -174,21 +175,22 @@ class Suite:
 
         # Trying to swap log files
         # MAX_BYTES = 26214400 # 25MB
-        MAX_BYTES = 20000
+        MAX_BYTES = 100000
 
         while None in [p.poll() for p, __ in processes]:
-            print("Not all simulations are finished")
-            for log in (logfile for __, logfile in processes):
-                print(log, "has size", os.path.getsize(log), "in bytes")
-                size = os.path.getsize(log)
+            for p, logfile in processes:
+                size = os.path.getsize(os.path.abspath(logfile))
+                print(logfile, "has size", size, "in bytes")
                 if size >= MAX_BYTES:
                     print("Logfile too large.")
-                    shutil.copyfile(log, log+".1")
-                    break
-
+                    # shutil.copyfile(logfile, +".1")
+                    # Need to stop the process in order to delete contents of logfile
+                    p.send_signal(signal.SIGSTOP)
+                    with open(logfile, "w") as f:
+                        pass
+                    p.send_signal(signal.SIGCONT)
                     
-                    
-
+        [p.wait() for p, __ in processes]
         print("All simulations finished!")
 
         # Clean up

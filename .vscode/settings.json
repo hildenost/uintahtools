@@ -1,4 +1,11 @@
 {
+<<<<<<< HEAD
+    "python.pythonPath": "/home/hilde/.virtualenvs/utools/bin/python3",
+    "python.formatting.provider": "yapf"
+||||||| merged common ancestors
+    "python.pythonPath": "/home/hilde/.virtualenvs/utools/bin/python3"
+=======
     "python.pythonPath": "/home/hilde/.virtualenvs/utools/bin/python3",
     "python.formatting.provider": "autopep8"
+>>>>>>> 9bcbde12372d0721c506ec1a6093d18d17e557f9
 }
