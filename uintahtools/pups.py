@@ -283,7 +283,7 @@ def convert_folder_to_udapaths(folder):
     return [folder + path for path in os.listdir(folder) if is_folder_uda(path)]
 
 
-def udaplot(plottype, udapaths, output=None, compare=False):
+def udaplot(plottype, udapaths, output=None, compare=False, init=None):
     """Module pups main plotting function.
 
     From a given set of timepoints, the provided variables are extracted
@@ -331,7 +331,7 @@ def udaplot(plottype, udapaths, output=None, compare=False):
 
     for udapath in udapaths:
         print("Now plotting ", udapath, ". Please wait...")
-        uda = Uda(udapath, plottype, settings[plottype])
+        uda = Uda(udapath, plottype, settings[plottype], init)
         udaplot = UdaPlot.create(plottype, uda)
         udaplot.plot()
         print("Close figure window to get to next plot or quit.")

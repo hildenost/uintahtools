@@ -21,12 +21,15 @@ PUDA = "/".join([os.path.dirname(load['uintahpath']), "puda"])
 class Uda:
     """Class for manipulation of and data extraction from the Uintah result folder .uda/."""
 
-    def __init__(self, uda, key, timesteps=None, every=None, samples=None):
+    def __init__(self, uda, key, timesteps=None, init=None, every=None, samples=None):
         self.uda = uda
         self.timesteps = self.get_timesteps(timesteps, every, samples)
         self.timeseries = timesteps
         self.key = key
         self.vars = Variable(key)
+
+        if init:
+            print("Initial particle positions here: ", init)
 
     def __str__(self):
         return self.uda
