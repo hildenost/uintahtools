@@ -43,7 +43,7 @@ class Uda:
             return None
         return StringIO(process)
 
-    def swap_extension(self, extension):
+    def swap_extension(self, extension, number=False):
         return ".".join((self.uda.split(".")[0], extension))
 
     def generate_timedict(self):

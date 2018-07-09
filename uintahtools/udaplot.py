@@ -12,13 +12,12 @@ from uintahtools.uda import Variable
 from uintahtools.terzaghi.terzaghi import terzaghi
 
 
-FIGSIZE = (5, 3.8)
-
-
 class UdaPlot:
 
     def __init__(self, uda):
         self.uda = uda
+        self.FIGSIZE = (5, 3.8)
+
         # self.df = UdaFrame(uda)
 
     @staticmethod
@@ -30,7 +29,7 @@ class UdaPlot:
         assert 0, "Bad shape creation: " + type
 
     def plot(self):
-        fig = plt.figure(figsize=FIGSIZE)
+        fig = plt.figure(figsize=self.FIGSIZE)
         ax = fig.add_subplot(111)
 
         # self.plot_analytical(ax)
@@ -69,10 +68,8 @@ class UdaPlot:
 
     def display_plot(self, output):
         if (output):
-            if (len(output) == 1):
-                outfile = self.uda.swap_extension("pdf")
-            else:
-                outfile = output[1]
+            outfile = self.uda.swap_extension(
+                "pdf", number=True) if output == "std" else output
             plt.savefig(outfile, dpi=300)
         else:
             plt.show()
@@ -83,9 +80,10 @@ class PorePressureMomentumPlot(UdaPlot):
     def __init__(self, uda):
         self.df = PorePressureMomentumFrame(uda)
         super(PorePressureMomentumPlot, self).__init__(uda)
+        self.FIGSIZE = (5, 6)
 
     def plot(self):
-        fig = plt.figure(figsize=FIGSIZE)
+        fig = plt.figure(figsize=self.FIGSIZE)
         ax = fig.add_subplot(111)
 
         # self.plot_analytical(ax)
@@ -106,6 +104,11 @@ class PorePressureMomentumPlot(UdaPlot):
 
     def add_legend(self):
         plt.legend(loc=0)
+
+    def labels(self):
+        xlabel = "Position along beam $x/L$"
+        ylabel = "Normalized pore pressure momentum $M_p$"
+        return xlabel, ylabel
 
     def annotate(self):
         pass

@@ -3,12 +3,12 @@
 uintahpath: /home/hilde/trunk/opt/StandAlone/sus
 porepressure_momentum:
 - 0
-# - 0.02
+- 0.02
 - 0.08
-- 0.26
-- 0.5
-- 1
-- 1.5
+- 0.10
+- 0.15
+- 0.2
+- 0.55
 terzaghi:
 - 0.001
 - 0.005

@@ -120,14 +120,14 @@ class PorePressureMomentumFrame(UdaFrame):
         return column.apply(norm_M)
 
     def plot_df(self, ax=None):
-        # mp_cycler = cycler("linestyle", ['-', '--', ':', '-.'])
-        # ax.set_prop_cycle(mp_cycler)
+        mp_cycler = cycler("linestyle", ['-', '--', ':', '-.'])
+        ax.set_prop_cycle(mp_cycler)
 
         grouped = self.groupby("time")
 
         for label, df in grouped:
             df.plot(x="x", y="momentum", ax=ax,
-                    # color="black",
+                    color="black",
                     zorder=2, label=str(round(label, 3)))
 
             ax.fill_between(
