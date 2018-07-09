@@ -214,14 +214,14 @@ def variablelist(uda):
     return dict(result)
 
 
-def verify_plot_options(x, y):
-    if (x, y) == ("p.porepressure", "p.x"):
-        return "terzaghi"
-    elif (x, y) == ("p.porepressure", "time"):
-        return "terzaghi_time"
-    elif (x, y) == ("p.porepressure", "momentum"):
-        return "porepressure_momentum"
-    else:
+def verify_plot_options(plottype):
+    plotlist = set(
+        ["terzaghi",
+         "terzaghi_time",
+         "porepressure_momentum"]
+    )
+
+    if not plottype in plotlist:
         print("Plot type not recognized.")
         exit()
 
@@ -283,7 +283,7 @@ def convert_folder_to_udapaths(folder):
     return [folder + path for path in os.listdir(folder) if is_folder_uda(path)]
 
 
-def udaplot(x, y, udapaths, output=None, compare=False):
+def udaplot(plottype, udapaths, output=None, compare=False):
     """Module pups main plotting function.
 
     From a given set of timepoints, the provided variables are extracted
@@ -301,7 +301,7 @@ def udaplot(x, y, udapaths, output=None, compare=False):
             [ ] For all particles
 
     """
-    print("Plotting x:", x, " vs  y:", y, " contained in ", udapaths)
+    print("Plotting", plottype, "from", udapaths)
 
     # if compare and len(uda) > 1:
     #     print("Comparing ", len(uda))
@@ -309,7 +309,7 @@ def udaplot(x, y, udapaths, output=None, compare=False):
     # else:
     #     compare = False
 
-    key = verify_plot_options(x, y)
+    verify_plot_options(plottype)
 
     paths = {path: verify_path(path) for path in udapaths}
     if not all(list(paths.values())):
@@ -327,12 +327,12 @@ def udaplot(x, y, udapaths, output=None, compare=False):
         udapaths = converted
 
     settings = Settings()
-    settings.configure(key, override=False)
+    settings.configure(plottype, override=False)
 
     for udapath in udapaths:
         print("Now plotting ", udapath, ". Please wait...")
-        uda = Uda(udapath, key, settings[key])
-        udaplot = UdaPlot.create(key, uda)
+        uda = Uda(udapath, plottype, settings[plottype])
+        udaplot = UdaPlot.create(plottype, uda)
         udaplot.plot()
         print("Close figure window to get to next plot or quit.")
         udaplot.display_plot(output)

@@ -52,15 +52,14 @@ def cli():
 
 
 @cli.command("plot", short_help="plot two variables")
-@click.argument("xvar")
-@click.argument("yvar")
+@click.argument("plottype")
 @click.argument("uda", nargs=-1)
 @click.option("--output", default="")
 @click.option("--compare", is_flag=True)
-def plot(xvar, yvar, uda, output, compare):
+def plot(plottype, uda, output, compare):
     """Create a simple 2D scatter plot with XVAR vs YVAR found in the given UDA folder."""
     click.echo("Plotting ...")
-    udaplot(xvar, yvar, uda, output, compare)
+    udaplot(plottype, uda, output, compare)
     click.echo("Finished!")
 
 
