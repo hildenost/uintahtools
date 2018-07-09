@@ -112,7 +112,7 @@ class PorePressureMomentumFrame(UdaFrame):
     def normalise_momentum(column, beam):
         """Normalising the momentum along the beam.
 
-        norm_M = momentum * beam_length / (elastic_modulus * second_moment_of_area)
+        norm_M = momentum * beam_length / (elastic_modulus * second_moment_of_area) * beam_area
         """
         def norm_M(M):
             return M * beam.l / (beam.E * beam.I) * beam.A
