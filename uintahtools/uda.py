@@ -102,6 +102,8 @@ class Variable():
             self.vars = self.TerzaghiVariables()
         elif (plottype == "porepressure_momentum"):
             self.vars = self.MomentumVariables()
+        elif (plottype == "beam.deflection"):
+            self.vars = self.DeflectionVariables()
 
     def get_headers(self):
         return [var.header for var in self.vars]
@@ -117,6 +119,13 @@ class Variable():
 
     def __iter__(self):
         return self.vars.__iter__()
+
+    @staticmethod
+    def DeflectionVariables():
+        xx = Variable.Var(udavar="p.x",
+                          header="x", settings={})
+        yy = Variable.Var(udavar="p.x", header="y", settings={})
+        return Variable.Vars(xx, yy)
 
     @staticmethod
     def TerzaghiVariables():

@@ -218,7 +218,8 @@ def verify_plot_options(plottype):
     plotlist = set(
         ["terzaghi",
          "terzaghi_time",
-         "porepressure_momentum"]
+         "porepressure_momentum",
+         "beam.deflection"]
     )
 
     if not plottype in plotlist:
@@ -321,8 +322,8 @@ def udaplot(plottype, udapaths, output=None, compare=False, init=None):
     # udapath = udapath[0]
     # print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
 
-    converted = []
     if not is_folder_uda(udapaths[0]):
+        converted = []
         converted.extend(convert_folder_to_udapaths(udapaths[0]))
         udapaths = converted
 

@@ -59,12 +59,75 @@ class TerzaghiFrame(UdaFrame):
             df[var.header] = df[var.header].map(
                 lambda t: self.normalize(t, **var.settings))
 
-        print(df.head())
         return df
 
     def plot_df(self, ax):
         self.plot.scatter(x=self.uda.vars.vars.x.header, y=self.uda.vars.vars.y.header,
                           ax=ax, color="none", edgecolor="black", zorder=2, label="MPM-FVM")
+
+
+class BeamDeflectionFrame(UdaFrame):
+    def dataframe_create(self, uda):
+        df = super().dataframe_create(uda)
+
+        beam_middle = self.get_beam_middle_partIds(uda, 0.3)
+
+        deflection = self.compute_deflection(beam_middle, df)
+
+        return deflection
+
+    def plot_df(self, ax):
+        self.plot.scatter(x="x", y="deflection",
+                          ax=ax)
+                        #   , color="none", edgecolor="black", zorder=2, label="MPM-FVM")
+
+    @staticmethod
+    def compute_deflection(positiondf, df):
+        timegroup = df.groupby("time")
+        positiongroup = positiondf.groupby("x")
+
+        deflection_data = {"time": [], "x": [], "deflection": []}
+
+        for time, data in timegroup:
+            data.set_index(["partId"], inplace=True)
+            if time < 0.02:
+                continue
+            for x, group in positiongroup:
+                group.set_index(["partId"], inplace=True)
+                for pId, row in group.iterrows():
+                    try:
+                        y = data.at[pId, "y"]
+                    except KeyError:
+                        print(
+                            "Particle ID {pId} not found in both dataframes.".format(pId=pId))
+                        exit()
+                    y0 = row["y"]
+                    deflection = y - y0
+                deflection_data["time"].append(time)
+                deflection_data["x"].append(x)
+                deflection_data["deflection"].append(deflection)
+        return pd.DataFrame(data=deflection_data)
+
+    @staticmethod
+    def get_beam_middle_partIds(uda_incoming, beam_height):
+        uda = uda_incoming.udainit if uda_incoming.udainit else uda_incoming
+
+        result = uda.extracted("p.x", uda.timesteps[0])
+
+        names = uda.vars.get_uda_headers("p.x")
+        df = pd.read_table(
+            result, header=None, names=names, skiprows=2,
+            sep="\s+") if result is not None else pd.DataFrame(
+                columns=names)
+
+        y_mean = -beam_height / 2
+
+        def demean(y): return y - y_mean
+        df["y"] = df["y"].apply(demean)
+
+        # Locate the y's closest to 0
+        # drop duplicate x's
+        return df.reindex(df.y.abs().sort_values().index).drop_duplicates("x")
 
 
 class PorePressureMomentumFrame(UdaFrame):

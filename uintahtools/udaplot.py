@@ -7,7 +7,7 @@ import pandas as pd
 import seaborn as sns
 sns.set_style("white")
 
-from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame
+from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame, BeamDeflectionFrame
 from uintahtools.uda import Variable
 from uintahtools.terzaghi.terzaghi import terzaghi
 
@@ -26,6 +26,8 @@ class UdaPlot:
             return TerzaghiPlot(uda)
         elif type == "porepressure_momentum":
             return PorePressureMomentumPlot(uda)
+        elif type == "beam.deflection":
+            return BeamDeflectionPlot(uda)
         assert 0, "Bad shape creation: " + type
 
     def plot(self):
@@ -73,6 +75,14 @@ class UdaPlot:
             plt.savefig(outfile, dpi=300)
         else:
             plt.show()
+
+
+class BeamDeflectionPlot(UdaPlot):
+
+    def __init__(self, uda):
+        self.df = BeamDeflectionFrame(uda)
+        super().__init__(uda)
+        self.FIGSIZE = (5, 3.8)
 
 
 class PorePressureMomentumPlot(UdaPlot):
