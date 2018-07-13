@@ -7,9 +7,10 @@ import pandas as pd
 import seaborn as sns
 sns.set_style("white")
 
-from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame, BeamDeflectionFrame
+from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame, BeamDeflectionFrame, Beam
 from uintahtools.uda import Variable
 from uintahtools.terzaghi.terzaghi import terzaghi
+from uintahtools.elastica.large_deflection_fdm import small_deflection, large_deflection
 
 
 class UdaPlot:
@@ -34,7 +35,7 @@ class UdaPlot:
         fig = plt.figure(figsize=self.FIGSIZE)
         ax = fig.add_subplot(111)
 
-        # self.plot_analytical(ax)
+        self.plot_analytical(ax)
         self.df.plot_df(ax)
         # self.df.plot_df()
 
@@ -84,6 +85,24 @@ class BeamDeflectionPlot(UdaPlot):
         super().__init__(uda)
         self.FIGSIZE = (5, 3.8)
 
+    def labels(self):
+        xlabel = "$x$"
+        ylabel = "Beam deflection $y$"
+        return xlabel, ylabel
+
+    def plot_analytical(self, ax):
+        add_to_plot = partial(
+            ax.plot, color="gray", alpha=0.8,
+            linestyle="solid", linewidth=2, zorder=1)
+
+        load = 54e3
+        number_of_cells = 100
+        beam = Beam(b=0.1, l=1, h=0.3, E=10e6)
+
+        xs, ys = small_deflection(load * beam.b, number_of_cells, beam)
+
+        add_to_plot(xs, ys, label="analytical")
+
 
 class PorePressureMomentumPlot(UdaPlot):
 
@@ -91,6 +110,9 @@ class PorePressureMomentumPlot(UdaPlot):
         self.df = PorePressureMomentumFrame(uda)
         super(PorePressureMomentumPlot, self).__init__(uda)
         self.FIGSIZE = (5, 6)
+
+    def plot_analytical(self, ax):
+        pass
 
     def plot(self):
         fig = plt.figure(figsize=self.FIGSIZE)

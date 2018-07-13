@@ -77,9 +77,20 @@ class BeamDeflectionFrame(UdaFrame):
         return deflection
 
     def plot_df(self, ax):
-        self.plot.scatter(x="x", y="deflection",
-                          ax=ax)
-                        #   , color="none", edgecolor="black", zorder=2, label="MPM-FVM")
+
+        mp_cycler = cycler("linestyle", ['-', '--', ':', '-.'])
+        ax.set_prop_cycle(mp_cycler)
+
+        grouped = self.groupby("time")
+
+        for label, df in grouped:
+            df.plot(x="x", y="deflection", ax=ax,
+                    color="black",
+                    zorder=2, label=str(round(label, 3)))
+
+        # self.plot.scatter(x="x", y="deflection",
+            #   ax=ax)
+        #   , color="none", edgecolor="black", zorder=2, label="MPM-FVM")
 
     @staticmethod
     def compute_deflection(positiondf, df):
@@ -96,7 +107,7 @@ class BeamDeflectionFrame(UdaFrame):
                 group.set_index(["partId"], inplace=True)
                 for pId, row in group.iterrows():
                     try:
-                        y = data.at[pId, "y"]
+                        y = data.at[pId, "y"] + 0.15
                     except KeyError:
                         print(
                             "Particle ID {pId} not found in both dataframes.".format(pId=pId))
@@ -104,8 +115,9 @@ class BeamDeflectionFrame(UdaFrame):
                     y0 = row["y"]
                     deflection = y - y0
                 deflection_data["time"].append(time)
-                deflection_data["x"].append(x)
                 deflection_data["deflection"].append(deflection)
+                deflection_data["x"].append(data.at[pId, "x"])
+
         return pd.DataFrame(data=deflection_data)
 
     @staticmethod
@@ -130,21 +142,23 @@ class BeamDeflectionFrame(UdaFrame):
         return df.reindex(df.y.abs().sort_values().index).drop_duplicates("x")
 
 
+class Beam:
+    def __init__(self, b, l, h, E):
+        self.b = b
+        self.l = l
+        self.h = h
+        self.E = E
+        self.I = self.second_moment_of_area(b, h)
+        self.A = self.area(b, h)
+
+    def area(self, b, h):
+        return b * h
+
+    def second_moment_of_area(self, b, h):
+        return b * h * h * h / 12.0
+
+
 class PorePressureMomentumFrame(UdaFrame):
-    class Beam:
-        def __init__(self, b, l, h, E):
-            self.b = b
-            self.l = l
-            self.h = h
-            self.E = E
-            self.I = self.second_moment_of_area(b, h)
-            self.A = self.area(b, h)
-
-        def area(self, b, h):
-            return b * h
-
-        def second_moment_of_area(self, b, h):
-            return b * h * h * h / 12.0
 
     @staticmethod
     def insert_boundary_values(df, column, value):
@@ -178,7 +192,7 @@ class PorePressureMomentumFrame(UdaFrame):
         norm_M = momentum * beam_length / (elastic_modulus * second_moment_of_area) * beam_area
         """
         def norm_M(M):
-            return M * beam.l / (beam.E * beam.I) * beam.A
+            return M * beam.l / (beam.E * beam.I) * beam.b
 
         return column.apply(norm_M)
 
@@ -200,7 +214,7 @@ class PorePressureMomentumFrame(UdaFrame):
         df = super().dataframe_create(uda)
         df = df.filter(["time", "partId", "p.porepressure"])
 
-        beam = PorePressureMomentumFrame.Beam(b=0.1, l=1.0, h=0.3, E=10e6)
+        beam = Beam(b=0.1, l=1.0, h=0.3, E=10e6)
 
         sections = self.initialize_group_sections(uda, beam)
         momentum = self.compute_pore_pressure_momentum(sections, df)
@@ -245,6 +259,8 @@ class PorePressureMomentumFrame(UdaFrame):
             for x, group in positiongroup:
                 group.set_index(["partId"], inplace=True)
                 mom = 0.0
+                ys = []
+                xs = []
                 for pId, row in group.iterrows():
                     try:
                         porepressure = data.at[pId, "p.porepressure"]
@@ -253,8 +269,18 @@ class PorePressureMomentumFrame(UdaFrame):
                             "Particle ID {pId} not found in both dataframes.".format(pId=pId))
                         exit()
                     y = row["y"]
-                    mom -= porepressure * y
+                    ys.append(y * porepressure)
+                    xs.append(y)
+                mom = -trapezoidal_rule(ys, xs)
+
                 momentum["time"].append(time)
                 momentum["x"].append(x)
                 momentum["momentum"].append(mom)
         return pd.DataFrame(data=momentum)
+
+
+def trapezoidal_rule(function, x):
+    result = 0.0
+    for k in range(1, len(x)):
+        result += ((function[k] + function[k - 1]) / 2.0 * (x[k] - x[k - 1]))
+    return result
