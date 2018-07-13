@@ -33,10 +33,22 @@ class UdaPlot:
 
     def plot(self):
         fig = plt.figure(figsize=self.FIGSIZE)
+        fig.subplots_adjust(left=0.15)
         ax = fig.add_subplot(111)
 
-        self.plot_analytical(ax)
-        self.df.plot_df(ax)
+        ax = self.df.plot_df(ax)
+        # self.plot_analytical(ax)
+
+        load = 54e3
+        number_of_cells = 100
+        beam = Beam(b=0.1, l=1, h=0.3, E=10e6)
+
+        xs, ys = small_deflection(load * beam.b, number_of_cells, beam)
+
+        ax.plot(xs, ys, color="gray", alpha=0.8, linestyle="solid",
+                lw=2, zorder=1, label="analytical")
+        ax.legend(fancybox=True, framealpha=0.8, frameon=True)
+        ax.yaxis.grid(True, linestyle="--")
         # self.df.plot_df()
 
         # Removing plot frame
@@ -44,7 +56,7 @@ class UdaPlot:
         #     ax.spines[side].set_visible(False)
 
         ax.set_xbound(lower=0, upper=1)
-        # ax.set_ybound(lower=0, upper=1)
+        ax.set_ybound(upper=0)
 
         self.add_labels(ax)
         # self.annotate()
@@ -86,7 +98,7 @@ class BeamDeflectionPlot(UdaPlot):
         self.FIGSIZE = (5, 3.8)
 
     def labels(self):
-        xlabel = "$x$"
+        xlabel = "Position from fixed end $x$"
         ylabel = "Beam deflection $y$"
         return xlabel, ylabel
 
@@ -139,7 +151,7 @@ class PorePressureMomentumPlot(UdaPlot):
 
     def labels(self):
         xlabel = "Position along beam $x/L$"
-        ylabel = "Normalized pore pressure momentum $M_p$"
+        ylabel = "Normalized pore pressure momentum $M_p^*$"
         return xlabel, ylabel
 
     def annotate(self):
