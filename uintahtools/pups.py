@@ -304,11 +304,11 @@ def udaplot(plottype, udapaths, output=None, compare=False, init=None):
     """
     print("Plotting", plottype, "from", udapaths)
 
-    # if compare and len(uda) > 1:
-    #     print("Comparing ", len(uda))
-    #     uda2 = uda[1]
-    # else:
-    #     compare = False
+    if compare and len(udapaths) > 1:
+        print("Comparing ", len(udapaths))
+        uda2 = udapaths[1]
+    else:
+        compare = False
 
     verify_plot_options(plottype)
 
@@ -335,8 +335,11 @@ def udaplot(plottype, udapaths, output=None, compare=False, init=None):
         uda = Uda(udapath, plottype, settings[plottype], init)
         udaplot = UdaPlot.create(plottype, uda)
         udaplot.plot()
+        if compare:
+            continue
         print("Close figure window to get to next plot or quit.")
         udaplot.display_plot(output)
+    udaplot.display_plot(output)
 
     # New dataframe for selected depths.
     # Collects depth, porepressure and time.

@@ -9,6 +9,7 @@ class UdaFrame(pd.DataFrame):
     def __init__(self, uda):
         super().__init__()
         df = self.dataframe_create(uda)
+        self.uda = uda
         super(UdaFrame, self).__init__(df)
 
     def plot_df(self, ax=None):
@@ -59,11 +60,14 @@ class TerzaghiFrame(UdaFrame):
             df[var.header] = df[var.header].map(
                 lambda t: self.normalize(t, **var.settings))
 
+        print(df)
+
         return df
 
     def plot_df(self, ax):
         self.plot.scatter(x=self.uda.vars.vars.x.header, y=self.uda.vars.vars.y.header,
                           ax=ax, color="none", edgecolor="black", zorder=2, label="MPM-FVM")
+        return ax
 
 
 class BeamDeflectionFrame(UdaFrame):
