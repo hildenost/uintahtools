@@ -130,7 +130,7 @@ class Variable():
     @staticmethod
     def TerzaghiVariables():
         xx = Variable.Var(udavar="p.porepressure",
-                          header="p.porepressure", settings={"varmax": 1e4})
+                          header="p.porepressure", settings={"varmax": -1e4})
         yy = Variable.Var(udavar="p.x", header="y", settings={
                           "flip": False, "offset": 1})
         return Variable.Vars(xx, yy)
