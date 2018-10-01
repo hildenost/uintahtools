@@ -43,10 +43,10 @@ class UdaPlot:
         number_of_cells = 100
         beam = Beam(b=0.1, l=1, h=0.3, E=10e6)
 
-        # xs, ys = small_deflection(load * beam.b, number_of_cells, beam)
+        xs, ys = small_deflection(load * beam.b, number_of_cells, beam)
 
-        # ax.plot(xs, ys, color="gray", alpha=0.8, linestyle="solid",
-        # lw=2, zorder=1, label="analytical")
+        ax.plot(xs, ys, color="gray", alpha=0.8, linestyle="solid",
+                lw=2, zorder=1, label="analytical")
         ax.legend(fancybox=True, framealpha=0.8, frameon=True)
         ax.yaxis.grid(True, linestyle="--")
         # self.df.plot_df()

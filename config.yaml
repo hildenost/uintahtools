@@ -3,15 +3,17 @@
 uintahpath: /home/hilde/trunk/opt/StandAlone/sus
 beam.deflection:
 - 0.0
-- 0.03
+- 0.05
 - 0.13
-- 0.83
+- 0.6
+- 1.2
 porepressure_momentum:
 - 0
-- 0.03
-- 0.09
-- 0.23
-- 0.83
+- 0.05
+- 0.13
+- 0.2
+- 0.3
+- 0.6
 terzaghi:
 - 0.001
 - 0.005

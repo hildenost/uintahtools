@@ -90,7 +90,7 @@ class BeamDeflectionFrame(UdaFrame):
         for label, df in grouped:
             df.plot(x="x", y="deflection", ax=ax,
                     color="black",
-                    zorder=2, label="$T = " + str(round(label - 0.03, 3)) + "$")
+                    zorder=2, label="$T = " + str(round(label, 3)) + "$")
         return ax
 
         # self.plot.scatter(x="x", y="deflection",
@@ -210,7 +210,7 @@ class PorePressureMomentumFrame(UdaFrame):
         for label, df in grouped:
             df.plot(x="x", y="momentum", ax=ax,
                     color="black",
-                    zorder=2, label="$T =" + str(round(label - 0.03, 3)) + "$")
+                    zorder=2, label="$T =" + str(round(label, 3)) + "$")
 
             ax.fill_between(
                 x=df.x, y1=df.momentum, alpha=0.2, color=(0, 0.11, 0.86))
