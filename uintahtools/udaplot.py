@@ -11,7 +11,7 @@ sns.set_style("white")
 from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame, BeamDeflectionFrame, Beam, BeamContourFrame
 from uintahtools.uda import Variable
 from uintahtools.terzaghi.terzaghi import terzaghi
-from uintahtools.elastica.large_deflection_fdm import small_deflection, large_deflection
+#from uintahtools.elastica.large_deflection_fdm import small_deflection, large_deflection
 
 
 class UdaPlot:

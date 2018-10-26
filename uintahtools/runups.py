@@ -23,6 +23,8 @@ from pathlib import Path
 import colorama
 from colorama import Fore
 from ruamel.yaml import YAML
+from timeit import timeit
+
 from uintahtools import CONFIG
 from uintahtools import UPS
 
@@ -67,7 +69,7 @@ class Prompt(cmd.Cmd):
                 re.MULTILINE
             )
             current_time = float(result[-1][0])
-            
+
             percentage_done = round(current_time/max_time*100,1)
 
             def tcolour(number):
@@ -152,12 +154,18 @@ class Suite:
         self.logfiles.append(re.sub(r'\.ups$', ".log", os.path.basename(ups)))
         return os.path.join(os.path.dirname(ups), self.logfiles[-1])
 
-    def run(self):
+    def run(self, times=None):
         """Run all the files in directory, directing stdout to a specified logfile."""
+        
+        self.testsuite = {upsfile: self.logfile(upsfile) for upsfile in self.files}
+        print("Going to run those files {times} each! MOHAHAHAH!!!!".format(times=times))
+        if times:
+            for inputfile, _ in self.testsuite.items():
+                statement = "subprocess.Popen(['{uintah}', '{input}'])".format(uintah=self.UINTAHPATH,input=inputfile)
+                print(timeit(stmt=statement, setup="import subprocess", number=int(times)))
+            return
 
         # TODO: Make sure the log file "deletes itself". No reason to save all output...
-        self.testsuite = {upsfile: self.logfile(upsfile) for upsfile in self.files}
-
         processes = [(subprocess.Popen([self.UINTAHPATH, inputfile],
                             stdout=open(logfile, "w"),
                             stderr=subprocess.STDOUT,
@@ -175,20 +183,21 @@ class Suite:
 
         # Trying to swap log files
         # MAX_BYTES = 26214400 # 25MB
-        MAX_BYTES = 100000
+        # MAX_BYTES = 100000
 
-        while None in [p.poll() for p, __ in processes]:
-            for p, logfile in processes:
-                size = os.path.getsize(os.path.abspath(logfile))
-                print(logfile, "has size", size, "in bytes")
-                if size >= MAX_BYTES:
-                    print("Logfile too large.")
-                    # shutil.copyfile(logfile, +".1")
-                    # Need to stop the process in order to delete contents of logfile
-                    p.send_signal(signal.SIGSTOP)
-                    with open(logfile, "w") as f:
-                        pass
-                    p.send_signal(signal.SIGCONT)
+        # while None in [p.poll() for p, __ in processes]:
+        #   for p, logfile in processes:
+        #size = os.path.getsize(os.path.abspath(logfile))
+        #                print(logfile, "has size", size, "in bytes")
+        #               if size >= MAX_BYTES:
+        #                print("Logfile too large.")
+        # shutil.copyfile(logfile, +".1")
+        # Need to stop the process in order to delete contents of logfile
+        #                 p.send_signal(signal.SIGSTOP)
+        #                with open(logfile, "w") as f:
+        #                   pass
+        #              p.send_signal(signal.SIGCONT)
+                    
                     
         [p.wait() for p, __ in processes]
         print("All simulations finished!")

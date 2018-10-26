@@ -13,6 +13,7 @@ readline.set_completer_delims(" \t\n")
 readline.parse_and_bind("tab: complete")
 
 
+
 def initialize_config():
     """Initializes the configuration file if it is not set.
 
@@ -77,12 +78,17 @@ def generate(ups, yaml, run):
 
 @cli.command("run", short_help="run the simulation suite")
 @click.argument("folder")
+@click.option("--time", nargs=1)
 # @click.option('-d', is_flag=True, help="use dbg executable in stead of opt")
-def folder_run(folder):  # , d):
+def folder_run(folder, time):  # , d):
     """Run all Uintah input files residing in FOLDER."""
     click.echo(
         "Running all ups files in folder {folder}".format(folder=folder))
     # if d:
     # click.echo("Using the debug executable.")
+    if (time):
+        click.echo(
+            "Running {time} runs of each input file in folder, and timing.".format(time=time))
+
     suite = Suite(folder)
-    suite.run()
+    suite.run(time)
