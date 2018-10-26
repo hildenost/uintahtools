@@ -1,6 +1,13 @@
 # Configuration file for package uintahtools
 
 uintahpath: /home/hilde/trunk/opt/StandAlone/sus
+beam.contour:
+- 0.0
+- 0.06
+- 0.14
+- 0.3
+- 0.6
+- 1.2
 beam.deflection:
 - 0.0
 - 0.05

@@ -70,6 +70,16 @@ class TerzaghiFrame(UdaFrame):
         return ax
 
 
+class BeamContourFrame(UdaFrame):
+    def dataframe_create(self, uda):
+        dfs = [self.dataframe_assemble(var, uda)
+               for var in uda.vars]
+        # HACK! Because of the definition of uda.vars, there will be
+        # two identical dfs, dfs[0] == dfs[1]
+        # therefore only dfs[0] and dfs[2] are merged
+        return pd.merge(dfs[0], dfs[2])
+
+
 class BeamDeflectionFrame(UdaFrame):
     def dataframe_create(self, uda):
         df = super().dataframe_create(uda)

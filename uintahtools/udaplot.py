@@ -1,13 +1,14 @@
 from functools import partial
 
 import matplotlib.pyplot as plt
+import matplotlib.tri as tri
 import matplotlib.colors as colors
 import numpy as np
 import pandas as pd
 import seaborn as sns
 sns.set_style("white")
 
-from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame, BeamDeflectionFrame, Beam
+from uintahtools.udaframe import UdaFrame, TerzaghiFrame, PorePressureMomentumFrame, BeamDeflectionFrame, Beam, BeamContourFrame
 from uintahtools.uda import Variable
 from uintahtools.terzaghi.terzaghi import terzaghi
 from uintahtools.elastica.large_deflection_fdm import small_deflection, large_deflection
@@ -29,6 +30,8 @@ class UdaPlot:
             return PorePressureMomentumPlot(uda)
         elif type == "beam.deflection":
             return BeamDeflectionPlot(uda)
+        elif type == "beam.contour":
+            return BeamContourPlot(uda)
         assert 0, "Bad shape creation: " + type
 
     def plot(self):
@@ -88,6 +91,28 @@ class UdaPlot:
             plt.savefig(outfile, dpi=300)
         else:
             plt.show()
+
+
+class BeamContourPlot(UdaPlot):
+
+    def __init__(self, uda):
+        self.df = BeamContourFrame(uda)
+        super().__init__(uda)
+
+    def plot(self):
+        groups = self.df.groupby(by="time", as_index=False)
+        N = 10
+        for i, (name, group) in enumerate(groups):
+            plt.figure(i + 1)
+            if i == 0:
+                continue
+            cs = plt.tricontour(group.x, group.y,
+                                group["p.porepressure"], N, colors='k', lw=0.5)
+            plt.clabel(cs, fmt="%1.2g")  # manual=True
+#            plt.tricontourf(group.x, group.y,
+#                            group["p.porepressure"], N, cmap=plt.get_cmap("binary"))
+            plt.scatter(group.x, group.y,
+                        c=group["p.porepressure"], cmap=plt.get_cmap("binary"))
 
 
 class BeamDeflectionPlot(UdaPlot):

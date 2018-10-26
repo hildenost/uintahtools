@@ -219,7 +219,8 @@ def verify_plot_options(plottype):
         ["terzaghi",
          "terzaghi_time",
          "porepressure_momentum",
-         "beam.deflection"]
+         "beam.deflection",
+         "beam.contour"]
     )
 
     if not plottype in plotlist:

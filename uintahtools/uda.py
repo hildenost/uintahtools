@@ -95,7 +95,7 @@ class Variable():
                      "sigma31", "sigma32", "sigma33"]
     }
     Var = namedtuple("Var", ["udavar", "header", "settings"])
-    Vars = namedtuple("Vars", ["x", "y"])
+    Vars = namedtuple("Vars", ["x", "y", "z"])
 
     def __init__(self, plottype):
         if (plottype == "terzaghi"):
@@ -104,6 +104,8 @@ class Variable():
             self.vars = self.MomentumVariables()
         elif (plottype == "beam.deflection"):
             self.vars = self.DeflectionVariables()
+        elif (plottype == "beam.contour"):
+            self.vars = self.ContourVariables()
 
     def get_headers(self):
         return [var.header for var in self.vars]
@@ -121,11 +123,20 @@ class Variable():
         return self.vars.__iter__()
 
     @staticmethod
+    def ContourVariables():
+        xx = Variable.Var(udavar="p.x",
+                          header="x", settings={})
+        yy = Variable.Var(udavar="p.x", header="y", settings={})
+        zz = Variable.Var(udavar="p.porepressure",
+                          header="p.porepressure", settings={})
+        return Variable.Vars(xx, yy, zz)
+
+    @staticmethod
     def DeflectionVariables():
         xx = Variable.Var(udavar="p.x",
                           header="x", settings={})
         yy = Variable.Var(udavar="p.x", header="y", settings={})
-        return Variable.Vars(xx, yy)
+        return Variable.Vars(xx, yy, None)
 
     @staticmethod
     def TerzaghiVariables():
@@ -133,7 +144,7 @@ class Variable():
                           header="p.porepressure", settings={"varmax": 1e4})
         yy = Variable.Var(udavar="p.x", header="y", settings={
                           "flip": False, "offset": 1})
-        return Variable.Vars(xx, yy)
+        return Variable.Vars(xx, yy, None)
 
     @staticmethod
     def MomentumVariables():
@@ -141,7 +152,7 @@ class Variable():
                           header="x", settings={})
         yy = Variable.Var(udavar="p.porepressure",
                           header="p.porepressure", settings={})
-        return Variable.Vars(xx, yy)
+        return Variable.Vars(xx, yy, None)
 
 
 def cmd_make(var, uda, timestep=None):
