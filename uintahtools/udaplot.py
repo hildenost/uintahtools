@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import matplotlib.tri as tri
 import matplotlib.colors as colors
 import numpy as np
+from scipy.interpolate import griddata
 import pandas as pd
 import seaborn as sns
 sns.set_style("white")
@@ -31,6 +32,7 @@ class UdaPlot:
         elif type == "beam.deflection":
             return BeamDeflectionPlot(uda)
         elif type == "beam.contour":
+            print("Creating beam contour plot")
             return BeamContourPlot(uda)
         assert 0, "Bad shape creation: " + type
 
@@ -101,18 +103,37 @@ class BeamContourPlot(UdaPlot):
 
     def plot(self):
         groups = self.df.groupby(by="time", as_index=False)
-        N = 10
+        N = 6
         for i, (name, group) in enumerate(groups):
-            plt.figure(i + 1)
             if i == 0:
                 continue
+            plt.figure(num=i + 1, dpi=300)
+            ax = plt.gca()
+            ax.set_xlim(0, 1.2)
+            ax.set_ylim(-0.9, 0.1)
+            ax.set_xticks(np.arange(0, 1.2, 0.1))
+            ax.set_yticks(np.arange(-0.9, 0.1, 0.1))
+            ax.set_aspect('equal')
+            # Plot grid.
+            ax.grid(c='k', ls='-', alpha=0.3)
+            triang = tri.Triangulation(group.x, group.y)
+            print(triang.x)
+            treshold = 0.5
+            for [v1, v2, v3] in triang.triangles:
+                print(v1, v2, v3, end="\t")
+                print(triang.x[v1], triang.x[v2], triang.x[v3])
+                if abs(triang.x[v1] - triang.x[v2]) > treshold or abs(triang.x[v2] - triang.x[v3]) > treshold or abs(triang.x[v1] - triang.x[v3]) > treshold:
+                    print("\t\t THIS TRIANGLE SHOULD BE MASKED!!!")
+
+            # triang.set_mask()
+            ax.triplot(triang, 'bo-', markersize=0.5, lw=0.1)
             cs = plt.tricontour(group.x, group.y,
-                                group["p.porepressure"], N, colors='k', lw=0.5)
-            plt.clabel(cs, fmt="%1.2g")  # manual=True
-#            plt.tricontourf(group.x, group.y,
-#                            group["p.porepressure"], N, cmap=plt.get_cmap("binary"))
-            plt.scatter(group.x, group.y,
-                        c=group["p.porepressure"], cmap=plt.get_cmap("binary"))
+                                group["p.porepressure"], N, colors='k', linewidths=0.7, extend="neither")
+            plt.clabel(cs, fmt="%1.2g", fontsize=7.5)  # manual=True
+            plt.tricontourf(group.x, group.y,
+                            group["p.porepressure"], N, cmap=plt.get_cmap("binary"), alpha=0.5, extend="neither")
+#            plt.scatter(group.x, group.y,
+#                        c=group["p.porepressure"], s=0.6, cmap=plt.get_cmap("binary"))
 
 
 class BeamDeflectionPlot(UdaPlot):

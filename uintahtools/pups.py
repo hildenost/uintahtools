@@ -320,17 +320,18 @@ def udaplot(plottype, udapaths, output=None, compare=False, init=None):
             path=path)) for path in paths if not paths[path]]
         exit()
 
-    # udapath = udapath[0]
+    udapath = udapaths[0]
+    print(udapath)
     # print("Plotting x:", x, " vs  y:", y, " contained in ", udapath)
 
     if not is_folder_uda(udapaths[0]):
+        # BUG: The check is_folder_uda is too shallow
         converted = []
         converted.extend(convert_folder_to_udapaths(udapaths[0]))
         udapaths = converted
 
     settings = Settings()
     settings.configure(plottype, override=False)
-
     for udapath in udapaths:
         print("Now plotting ", udapath, ". Please wait...")
         uda = Uda(udapath, plottype, settings[plottype], init)
